@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Pressable,
@@ -29,6 +29,7 @@ export default function DeviceConfirmationScreen() {
   const [sporsKey, setSporsKey] = useState<string | null>(null)
   const [loadingKey, setLoadingKey] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const activeBroadcastUuidRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!deviceId) {
@@ -51,9 +52,20 @@ export default function DeviceConfirmationScreen() {
       }
 
       if (row.ble_device_uuid) {
-        void bleService.setStoredBleDeviceUuid(row.ble_device_uuid).catch(() => {
-          // Do not block key display if local UUID storage fails.
-        })
+        if (activeBroadcastUuidRef.current !== row.ble_device_uuid) {
+          activeBroadcastUuidRef.current = row.ble_device_uuid
+
+          void bleService.startBroadcasting(row.ble_device_uuid).catch((broadcastError) => {
+            const message =
+              broadcastError instanceof Error
+                ? broadcastError.message
+                : 'Unable to start always-on BLE broadcasting.'
+            if (active) {
+              setError((current) => current ?? `Device registered, but background beacon start failed: ${message}`)
+            }
+            activeBroadcastUuidRef.current = null
+          })
+        }
       }
     }
 

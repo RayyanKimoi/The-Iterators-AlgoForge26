@@ -1,6 +1,12 @@
 import { PermissionsAndroid, Platform } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import * as Location from 'expo-location'
+import {
+  getAdvertisingData,
+  setServices,
+  startAdvertising,
+  stopAdvertising,
+} from 'munim-bluetooth-peripheral'
 
 import { supabase } from '../lib/supabase'
 
@@ -9,13 +15,15 @@ type FoundCallback = (beaconId: string, rssi: number) => void
 export const APP_SERVICE_UUID = '5P0R5000-0000-0000-0000-000000000000'
 const BLE_DEVICE_UUID_STORAGE_KEY = 'spors_ble_device_uuid'
 const BLE_BROADCASTING_MODE_STORAGE_KEY = 'spors_ble_broadcasting_mode'
+const BLE_BEACON_NAME_PREFIX = 'SPORS-'
+const BLE_MANUFACTURER_PREFIX = 'SPORS:'
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 const REPORT_COOLDOWN_MS = 30000
 const reportCooldown = new Map<string, number>()
 const VALID_SERVICE_UUID_RE = /^([0-9a-f]{4}|[0-9a-f]{8}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
 
 function toNativeBleServiceUuid(value: string) {
-  // BLE service UUIDs must be hexadecimal; this maps SPORS mnemonic characters to hex-safe values.
+  // BLE UUIDs must be hex. Keep the SPORS mnemonic constant while mapping it for platform APIs.
   const mapped = value.replace(/p/gi, 'a').replace(/r/gi, 'f').toLowerCase()
   if (!VALID_SERVICE_UUID_RE.test(mapped)) {
     throw new Error('Invalid APP_SERVICE_UUID configuration for BLE advertising/scanning.')
@@ -94,11 +102,24 @@ function decodeBase64(value: string) {
   return decodeBase64Ascii(value)
 }
 
-type DeviceRow = {
-  id: string
-  status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
-  ble_beacon_id: string | null
-  ble_device_uuid: string | null
+type ForegroundServiceModule = {
+  createNotificationChannel?: (config: {
+    id: string
+    name: string
+    description?: string
+    importance?: number
+    enableVibration?: boolean
+  }) => Promise<unknown> | unknown
+  startService?: (config: {
+    channelId: string
+    id: number
+    title: string
+    text: string
+    icon: string
+    button?: string
+    priority?: number
+  }) => Promise<unknown> | unknown
+  stopService?: () => Promise<unknown> | unknown
 }
 
 class BLEService {
@@ -110,18 +131,11 @@ class BLEService {
     ) => void
     stopDeviceScan: () => void
     state?: () => Promise<string>
-    startAdvertising?: (
-      options: { serviceUUIDs: string[]; localName: string },
-      manufacturerData: string
-    ) => Promise<void> | void
-    stopAdvertising?: () => Promise<void> | void
     destroy?: () => void
   } | null = null
+  private foregroundService: ForegroundServiceModule | null = null
 
-  private scanSimulationTimer: ReturnType<typeof setTimeout> | null = null
-  private broadcastManufacturerData: string | null = null
   private recentlySeen = new Map<string, number>()
-  private scanning = false
   private broadcastingMode: boolean | null = null
 
   constructor() {
@@ -132,6 +146,13 @@ class BLEService {
       }
     } catch {
       this.manager = null
+    }
+
+    try {
+      const foregroundServiceModule = require('@voximplant/react-native-foreground-service')
+      this.foregroundService = (foregroundServiceModule?.default ?? foregroundServiceModule) as ForegroundServiceModule
+    } catch {
+      this.foregroundService = null
     }
   }
 
@@ -224,15 +245,98 @@ class BLEService {
       return true
     }
 
-    const requested = await PermissionsAndroid.requestMultiple([
+    const permissionsToRequest = [
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-    ])
+    ]
+
+    if (Platform.Version >= 33 && PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS) {
+      permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)
+    }
+
+    const requested = await PermissionsAndroid.requestMultiple(permissionsToRequest)
+
+    const notificationPermissionGranted =
+      Platform.Version < 33 ||
+      !PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS ||
+      requested[PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS] === PermissionsAndroid.RESULTS.GRANTED
 
     return (
       requested[PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE] === PermissionsAndroid.RESULTS.GRANTED &&
-      requested[PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT] === PermissionsAndroid.RESULTS.GRANTED
+      requested[PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT] === PermissionsAndroid.RESULTS.GRANTED &&
+      notificationPermissionGranted
     )
+  }
+
+  private async startForegroundBeaconService() {
+    if (Platform.OS !== 'android') {
+      return
+    }
+
+    if (!this.foregroundService?.startService) {
+      return
+    }
+
+    if (this.foregroundService.createNotificationChannel) {
+      await Promise.resolve(
+        this.foregroundService.createNotificationChannel({
+          id: 'spors-ble-beacon',
+          name: 'SPORS BLE Beacon',
+          description: 'Keeps SPORS device beacon active in background',
+          importance: 2,
+          enableVibration: false,
+        })
+      )
+    }
+
+    await Promise.resolve(
+      this.foregroundService.startService({
+        channelId: 'spors-ble-beacon',
+        id: 5001,
+        title: 'SPORS protection active',
+        text: 'Broadcasting your encrypted device beacon in background',
+        icon: 'ic_launcher',
+        button: 'Open SPORS',
+        priority: -1,
+      })
+    )
+  }
+
+  private async stopForegroundBeaconService() {
+    if (!this.foregroundService?.stopService) {
+      return
+    }
+
+    await Promise.resolve(this.foregroundService.stopService())
+  }
+
+  private getAdvertiseErrorMessage(error: unknown) {
+    if (typeof error === 'number') {
+      if (error === 5) {
+        return 'BLE advertising is not supported on this device hardware.'
+      }
+
+      return `Unable to start BLE advertising (code ${error}).`
+    }
+
+    const maybeObject = error as { code?: number; message?: string } | null
+    if (typeof maybeObject?.code === 'number') {
+      if (maybeObject.code === 5) {
+        return 'BLE advertising is not supported on this device hardware.'
+      }
+
+      if (maybeObject.message) {
+        return maybeObject.message
+      }
+
+      return `Unable to start BLE advertising (code ${maybeObject.code}).`
+    }
+
+    if (error instanceof Error && error.message) {
+      return error.message
+    }
+
+    return 'Unable to start BLE advertising on this device.'
   }
 
   async setStoredBleDeviceUuid(bleDeviceUuid: string) {
@@ -263,11 +367,10 @@ class BLEService {
     }
 
     if (!this.manager) {
-      throw new Error('BLE is not available on this device.')
+      throw new Error('BLE manager is not available. Please ensure Bluetooth is enabled.')
     }
 
     await this.ensureBluetoothPoweredOn()
-    this.scanning = true
 
     this.manager.startDeviceScan(scanServiceUuids, { allowDuplicates: false }, (error, device) => {
       if (error || !device) {
@@ -279,7 +382,7 @@ class BLEService {
         return
       }
 
-      const bleDeviceUuid = this.readBleUuidFromManufacturerData(device.manufacturerData)
+      const bleDeviceUuid = this.readBleUuidFromAdvertisement(device)
       if (!bleDeviceUuid) {
         return
       }
@@ -300,13 +403,7 @@ class BLEService {
   }
 
   stopScan() {
-    this.scanning = false
     this.recentlySeen.clear()
-
-    if (this.scanSimulationTimer) {
-      clearTimeout(this.scanSimulationTimer)
-      this.scanSimulationTimer = null
-    }
 
     if (this.manager) {
       this.manager.stopDeviceScan()
@@ -315,6 +412,7 @@ class BLEService {
 
   async startBroadcasting(bleDeviceUuid: string) {
     await this.stopBroadcasting()
+
     const locationGranted = await this.ensureForegroundLocationPermission()
     if (!locationGranted) {
       throw new Error('Location permission is required to activate lost mode beacon.')
@@ -322,7 +420,7 @@ class BLEService {
 
     const broadcastGranted = await this.requestBroadcastPermissions()
     if (!broadcastGranted) {
-      throw new Error('Bluetooth advertise permission is required to broadcast lost device beacon.')
+      throw new Error('Bluetooth advertise/connect and notification permissions are required for BLE background broadcasting.')
     }
 
     const normalizedUuid = this.normalizeBleUuid(bleDeviceUuid)
@@ -330,27 +428,73 @@ class BLEService {
       throw new Error('Invalid BLE device UUID for broadcasting.')
     }
 
-    if (!this.manager?.startAdvertising) {
-      throw new Error('BLE advertising is not available in this app build. Peripheral advertising API is missing.')
+    if (Platform.OS !== 'android') {
+      throw new Error('BLE peripheral broadcasting is currently supported only on Android in SPORS.')
     }
 
     await this.ensureBluetoothPoweredOn()
 
     await this.setStoredBleDeviceUuid(normalizedUuid)
-    this.broadcastManufacturerData = this.encodeBleUuidForManufacturerData(normalizedUuid)
+    await this.setBroadcastingMode(true)
+    const peripheralName = `${BLE_BEACON_NAME_PREFIX}${this.encodeBleUuidToBeaconToken(normalizedUuid)}`
+    const manufacturerData = this.encodeBleUuidForManufacturerData(normalizedUuid)
 
     try {
-      await this.manager.startAdvertising(
-        {
-          serviceUUIDs: [APP_SERVICE_UUID_NATIVE],
-          localName: 'SPORS',
-        },
-        this.broadcastManufacturerData
+      await this.startForegroundBeaconService()
+
+      await Promise.resolve(
+        setServices([
+          {
+            uuid: APP_SERVICE_UUID_NATIVE,
+            characteristics: [
+              {
+                uuid: normalizedUuid,
+                properties: ['read'],
+                value: normalizedUuid,
+              },
+            ],
+          },
+        ])
       )
-      await this.setBroadcastingMode(true)
-    } catch {
+
+      await Promise.resolve(
+        startAdvertising({
+          serviceUUIDs: [APP_SERVICE_UUID_NATIVE],
+          localName: peripheralName,
+          manufacturerData,
+          advertisingData: {
+            completeServiceUUIDs128: [APP_SERVICE_UUID_NATIVE],
+            completeLocalName: peripheralName,
+            manufacturerData,
+          },
+        })
+      )
+
+      const currentAdvertising = (await Promise.resolve(getAdvertisingData())) as {
+        manufacturerData?: string
+        advertisingData?: {
+          manufacturerData?: string
+        }
+      } | null
+
+      const activeManufacturer =
+        currentAdvertising?.manufacturerData ?? currentAdvertising?.advertisingData?.manufacturerData
+
+      if (activeManufacturer !== manufacturerData) {
+        throw new Error('BLE advertising failed to initialize the expected payload.')
+      }
+
+    } catch (error) {
+      const message = this.getAdvertiseErrorMessage(error)
+      console.log('BLE peripheral advertise error', error)
       await this.setBroadcastingMode(false)
-      throw new Error('Unable to start BLE broadcasting on this device.')
+      await Promise.resolve(stopAdvertising()).catch(() => {
+        // Ignore advertiser teardown errors during failed startup.
+      })
+      await this.stopForegroundBeaconService().catch(() => {
+        // Ignore foreground-service teardown errors during failed startup.
+      })
+      throw new Error(message)
     }
   }
 
@@ -359,15 +503,34 @@ class BLEService {
   }
 
   async stopBroadcasting() {
-    if (this.manager?.stopAdvertising) {
-      void this.manager.stopAdvertising()
-    }
+    await Promise.resolve(stopAdvertising()).catch(() => {
+      // Ignore advertiser stop errors when not currently advertising.
+    })
+
+    await this.stopForegroundBeaconService().catch(() => {
+      // Ignore foreground service stop failures to keep shutdown idempotent.
+    })
 
     await this.setBroadcastingMode(false)
   }
 
   stopBroadcast() {
     void this.stopBroadcasting()
+  }
+
+  async restoreBroadcastingFromStorage() {
+    const modeEnabled = await this.getBroadcastingMode()
+    if (!modeEnabled) {
+      return false
+    }
+
+    const storedUuid = await this.getStoredBleDeviceUuid()
+    if (!storedUuid) {
+      return false
+    }
+
+    await this.startBroadcasting(storedUuid)
+    return true
   }
 
   async reportLocationForDevice(deviceId: string, rssi: number | null = null) {
@@ -519,14 +682,81 @@ class BLEService {
     try {
       const decoded = decodeBase64(manufacturerData).trim()
       const matched = decoded.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)
-      return this.normalizeBleUuid(matched?.[0] ?? null)
+      const direct = this.normalizeBleUuid(matched?.[0] ?? null)
+      if (direct) {
+        return direct
+      }
+
+      // Backward compatibility for older packets that nested base64 content in manufacturer data.
+      const nested = decodeBase64(decoded)
+      const nestedMatch = nested.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)
+      return this.normalizeBleUuid(nestedMatch?.[0] ?? null)
     } catch {
       return null
     }
   }
 
   private encodeBleUuidForManufacturerData(bleDeviceUuid: string) {
-    return encodeBase64(bleDeviceUuid)
+    const payload = `${BLE_MANUFACTURER_PREFIX}${bleDeviceUuid}`
+    return Array.from(payload)
+      .map((char) => char.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join('')
+  }
+
+  private encodeBleUuidToBeaconToken(bleDeviceUuid: string) {
+    const hex = bleDeviceUuid.replace(/-/g, '')
+    let binary = ''
+
+    for (let i = 0; i < hex.length; i += 2) {
+      binary += String.fromCharCode(Number.parseInt(hex.slice(i, i + 2), 16))
+    }
+
+    return encodeBase64(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+  }
+
+  private decodeBeaconTokenToBleUuid(token: string) {
+    const base64 = token.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = `${base64}${'='.repeat((4 - (base64.length % 4 || 4)) % 4)}`
+
+    try {
+      const decoded = decodeBase64(padded)
+      if (decoded.length !== 16) {
+        return null
+      }
+
+      const hex = Array.from(decoded)
+        .map((char) => char.charCodeAt(0).toString(16).padStart(2, '0'))
+        .join('')
+
+      const formatted = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+      return this.normalizeBleUuid(formatted)
+    } catch {
+      return null
+    }
+  }
+
+  private readBleUuidFromBeaconName(deviceName?: string | null) {
+    if (!deviceName) {
+      return null
+    }
+
+    const trimmed = deviceName.trim()
+    const tokenMatch = trimmed.match(/^SPORS-([A-Za-z0-9_-]{22})$/)
+    if (tokenMatch?.[1]) {
+      return this.decodeBeaconTokenToBleUuid(tokenMatch[1])
+    }
+
+    const rawUuidMatch = trimmed.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/)
+    return this.normalizeBleUuid(rawUuidMatch?.[0] ?? null)
+  }
+
+  private readBleUuidFromAdvertisement(device: { localName?: string | null; name?: string | null; manufacturerData?: string | null }) {
+    const fromManufacturer = this.readBleUuidFromManufacturerData(device.manufacturerData)
+    if (fromManufacturer) {
+      return fromManufacturer
+    }
+
+    return this.readBleUuidFromBeaconName(device.localName ?? device.name)
   }
 }
 

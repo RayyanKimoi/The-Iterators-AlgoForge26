@@ -1,3 +1,4 @@
+import 'expo-dev-client'
 import { useEffect } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { Slot, useRouter, useSegments } from 'expo-router'
@@ -32,6 +33,9 @@ function AuthGate() {
       }
 
       if (broadcasting) {
+        await bleService.restoreBroadcastingFromStorage().catch(() => {
+          // Ignore restore failures here; manual restart can still occur from registration flow.
+        })
         await disableBackgroundBleScanTask()
       } else {
         await enableBackgroundBleScanTask()

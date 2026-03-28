@@ -15,9 +15,17 @@ import {
 
 import { Image } from 'react-native'
 
-const LOCATIONIQ_API_KEY = process.env.EXPO_PUBLIC_LOCATIONIQ_API_KEY ?? 'pk.88d6db2b14bb71ca4322321dbb988802'
+const LOCATIONIQ_API_KEY = process.env.EXPO_PUBLIC_LOCATIONIQ_API_KEY ?? ''
 
 function StaticMapView({ latitude, longitude, zoom = 14 }: { latitude: number; longitude: number; zoom?: number }) {
+  if (!LOCATIONIQ_API_KEY) {
+    return (
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1a1d24', alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: '#9ca3af', fontSize: 12 }}>Map key missing (EXPO_PUBLIC_LOCATIONIQ_API_KEY)</Text>
+      </View>
+    )
+  }
+
   const src = `https://maps.locationiq.com/v3/staticmap?key=${LOCATIONIQ_API_KEY}&center=${latitude},${longitude}&zoom=${zoom}&size=800x400&format=png&maptype=streets`
   return (
     <View style={StyleSheet.absoluteFill}>
@@ -56,8 +64,6 @@ import { Colors } from '../../constants/colors'
 import { FontFamily } from '../../constants/typography'
 import { markFound, reportLost, useDevice } from '../../hooks/useDevices'
 import { supabase } from '../../lib/supabase'
-import { disableBackgroundBleScanTask, enableBackgroundBleScanTask } from '../../services/backgroundBleTask'
-import { bleService } from '../../services/ble.service'
 
 type LostForm = {
   incident_description: string
@@ -187,11 +193,6 @@ export default function DeviceDetailScreen() {
 
     setSubmitting(true)
     try {
-      const broadcastPermissionsGranted = await bleService.requestBroadcastPermissions()
-      if (!broadcastPermissionsGranted) {
-        throw new Error('Bluetooth and location permissions are required. Allow Nearby Devices and Location for SPORS.')
-      }
-
       await reportLost(device.id, {
         incident_description: lostForm.incident_description.trim(),
         last_known_address: lostForm.last_known_address.trim(),
@@ -201,47 +202,9 @@ export default function DeviceDetailScreen() {
         last_known_lng: device.last_seen_lng,
       })
 
-      let bleDeviceUuid = device.ble_device_uuid
-      if (!bleDeviceUuid) {
-        for (let attempt = 0; attempt < 8; attempt += 1) {
-          const { data: nextRow } = await supabase
-            .from('devices')
-            .select('ble_device_uuid')
-            .eq('id', device.id)
-            .maybeSingle()
-
-          bleDeviceUuid = (nextRow as { ble_device_uuid?: string | null } | null)?.ble_device_uuid ?? null
-          if (bleDeviceUuid) {
-            break
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-        }
-      }
-
-      let broadcastWarning: string | null = null
-      if (bleDeviceUuid) {
-        await bleService.setStoredBleDeviceUuid(bleDeviceUuid)
-        try {
-          await bleService.startBroadcasting(bleDeviceUuid)
-          await disableBackgroundBleScanTask()
-        } catch (broadcastError) {
-          broadcastWarning =
-            broadcastError instanceof Error
-              ? broadcastError.message
-              : 'Unable to start BLE broadcasting in this build.'
-        }
-      } else {
-        broadcastWarning = 'BLE device UUID is not ready yet, so beacon broadcast was skipped.'
-      }
-
       setLostModal(false)
       await refetch()
-      if (broadcastWarning) {
-        Alert.alert('Reported as lost', `Device was marked as lost. ${broadcastWarning}`)
-      } else {
-        Alert.alert('Success', 'Device marked as lost and beacon mode activated.')
-      }
+      Alert.alert('Success', 'Device marked as lost. Nearby SPORS scanners can now report sightings.')
     } catch (actionError) {
       Alert.alert('Error', actionError instanceof Error ? actionError.message : 'Unable to report lost.')
     } finally {
@@ -257,10 +220,8 @@ export default function DeviceDetailScreen() {
     setSubmitting(true)
     try {
       await markFound(device.id)
-      await bleService.stopBroadcasting()
-      await enableBackgroundBleScanTask()
       await refetch()
-      Alert.alert('Success', 'Device marked as found/recovered.')
+      Alert.alert('Success', 'Device marked as found/recovered. Beacon broadcasting remains active on this device.')
     } catch (actionError) {
       Alert.alert('Error', actionError instanceof Error ? actionError.message : 'Unable to mark found.')
     } finally {

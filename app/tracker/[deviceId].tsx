@@ -48,9 +48,6 @@ const MUMBAI_CENTER = {
   longitude: 72.8354,
 }
 
-const GOOGLE_MAPS_API_KEY =
-  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
-
 const customMapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#12141a' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#7c838f' }] },
@@ -77,9 +74,17 @@ function relativeTime(dateIso: string) {
 
 import { Image } from 'react-native'
 
-const LOCATIONIQ_API_KEY = process.env.EXPO_PUBLIC_LOCATIONIQ_API_KEY ?? 'pk.88d6db2b14bb71ca4322321dbb988802'
+const LOCATIONIQ_API_KEY = process.env.EXPO_PUBLIC_LOCATIONIQ_API_KEY ?? ''
 
 function StaticMapView({ latitude, longitude, zoom = 15, children }: { latitude: number; longitude: number; zoom?: number, children?: React.ReactNode }) {
+  if (!LOCATIONIQ_API_KEY) {
+    return (
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1a1d24', alignItems: 'center', justifyContent: 'center' }]}>
+        <Text style={{ color: '#9ca3af', fontSize: 12 }}>Map key missing (EXPO_PUBLIC_LOCATIONIQ_API_KEY)</Text>
+      </View>
+    )
+  }
+
   const src = `https://maps.locationiq.com/v3/staticmap?key=${LOCATIONIQ_API_KEY}&center=${latitude},${longitude}&zoom=${zoom}&size=800x800&format=png&maptype=streets`
 
   return (
