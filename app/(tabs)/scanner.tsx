@@ -93,26 +93,60 @@ export default function ScannerScreen() {
 
   const upsertDetectedDevice = useCallback(
     async (beaconId: string, rssi: number) => {
-      const normalizedBeacon = beaconId.replace(/^SPORS-/i, '').trim()
-      const identifierCandidates = Array.from(new Set([beaconId, normalizedBeacon])).filter(Boolean)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beaconId)
 
-      const { data } = await supabase
-        .from('devices')
-        .select('id, owner_id, make, model, status, ble_beacon_id')
-        .in('ble_beacon_id', identifierCandidates)
-        .limit(1)
-
-      const matched = data?.[0] as
+      let matched:
         | {
             id: string
             owner_id: string
             make: string
             model: string
             status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
-            ble_beacon_id: string
+            ble_beacon_id: string | null
           }
         | undefined
 
+      if (isUuid) {
+        const { data } = await supabase
+          .from('devices')
+          .select('id, owner_id, make, model, status, ble_beacon_id')
+          .eq('ble_device_uuid', beaconId.toLowerCase())
+          .limit(1)
+
+        matched = data?.[0] as
+          | {
+              id: string
+              owner_id: string
+              make: string
+              model: string
+              status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
+              ble_beacon_id: string | null
+            }
+          | undefined
+      }
+
+      if (!matched) {
+        const normalizedBeacon = beaconId.replace(/^SPORS-/i, '').trim()
+        const identifierCandidates = Array.from(new Set([beaconId, normalizedBeacon])).filter(Boolean)
+        const { data } = await supabase
+          .from('devices')
+          .select('id, owner_id, make, model, status, ble_beacon_id')
+          .in('ble_beacon_id', identifierCandidates)
+          .limit(1)
+
+        matched = data?.[0] as
+          | {
+              id: string
+              owner_id: string
+              make: string
+              model: string
+              status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
+              ble_beacon_id: string | null
+            }
+          | undefined
+      }
+
+      const normalizedBeacon = beaconId.replace(/^SPORS-/i, '').trim()
       const finalBeaconId = matched?.ble_beacon_id || normalizedBeacon || beaconId
       const nextDevice: DetectedDevice = {
         beaconId: finalBeaconId,

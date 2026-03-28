@@ -56,12 +56,20 @@ import { Colors } from '../../constants/colors'
 import { FontFamily } from '../../constants/typography'
 import { markFound, reportLost, useDevice } from '../../hooks/useDevices'
 import { supabase } from '../../lib/supabase'
+import { bleService } from '../../services/ble.service'
 
 type LostForm = {
   incident_description: string
   last_known_address: string
   police_complaint_number: string
   reward_amount: string
+}
+
+const FALLBACK_REGION = {
+  latitude: 18.9388,
+  longitude: 72.8354,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
 }
 
 function formatRelativeFrom(dateString?: string | null) {
@@ -90,6 +98,9 @@ export default function DeviceDetailScreen() {
   const pulse = useRef(new Animated.Value(0)).current
   const [submitting, setSubmitting] = useState(false)
   const [lostModal, setLostModal] = useState(false)
+  const [liveLocation, setLiveLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null)
+  const [liveRssi, setLiveRssi] = useState<number | null>(null)
   const [lostForm, setLostForm] = useState<LostForm>({
     incident_description: '',
     last_known_address: '',
@@ -123,6 +134,46 @@ export default function DeviceDetailScreen() {
     )[0]
   }, [device?.beacon_logs])
 
+  useEffect(() => {
+    setLiveLocation(null)
+    setLastSeenAt(null)
+    setLiveRssi(null)
+  }, [device?.id])
+
+  useEffect(() => {
+    if (!device?.id) {
+      return
+    }
+
+    const channel = supabase
+      .channel(`beacon_logs:${device.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'beacon_logs',
+          filter: `device_id=eq.${device.id}`,
+        },
+        (payload) => {
+          const log = payload.new as {
+            latitude: number
+            longitude: number
+            rssi: number | null
+            reported_at: string
+          }
+          setLiveLocation({ latitude: log.latitude, longitude: log.longitude })
+          setLastSeenAt(log.reported_at)
+          setLiveRssi(log.rssi)
+        }
+      )
+      .subscribe()
+
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [device?.id])
+
   const reportLostNow = async () => {
     if (!device?.id) {
       return
@@ -144,6 +195,11 @@ export default function DeviceDetailScreen() {
         last_known_lng: device.last_seen_lng,
       })
 
+      if (device.ble_device_uuid) {
+        await bleService.setStoredBleDeviceUuid(device.ble_device_uuid)
+        await bleService.startBroadcast(device.ble_device_uuid)
+      }
+
       setLostModal(false)
       await refetch()
       Alert.alert('Success', 'Device marked as lost and beacon mode activated.')
@@ -162,6 +218,7 @@ export default function DeviceDetailScreen() {
     setSubmitting(true)
     try {
       await markFound(device.id)
+      bleService.stopBroadcast()
       await refetch()
       Alert.alert('Success', 'Device marked as found/recovered.')
     } catch (actionError) {
@@ -216,6 +273,24 @@ export default function DeviceDetailScreen() {
 
   const isLost = device.status === 'lost'
   const safeStatus = device.status === 'registered' || device.status === 'recovered'
+  const lastSeenLabel = lastSeenAt ?? lastBeacon?.reported_at ?? device.last_seen_at
+  const baseDeviceLocation =
+    device.last_seen_lat != null && device.last_seen_lng != null
+      ? {
+          latitude: device.last_seen_lat,
+          longitude: device.last_seen_lng,
+        }
+      : null
+  const mapLocation = liveLocation ?? baseDeviceLocation
+  const mapRegion = mapLocation
+    ? {
+        latitude: mapLocation.latitude,
+        longitude: mapLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }
+    : FALLBACK_REGION
+  const signalLabel = liveRssi ?? lastBeacon?.rssi ?? null
 
   return (
     <SafeAreaView style={styles.container}>
@@ -280,19 +355,18 @@ export default function DeviceDetailScreen() {
         </View>
 
         <View style={styles.lastSeenCard}>
-          <Text style={styles.sectionTitle}>Last Seen</Text>
-          {lastBeacon || device.last_seen_at ? (
+          <Text style={styles.sectionTitle}>{`Last Seen${signalLabel != null ? ` • Signal: ${signalLabel} dBm` : ''}`}</Text>
+          {lastSeenLabel || mapLocation ? (
             <Text style={styles.lastSeenText}>
-              {`Last seen ${formatRelativeFrom(lastBeacon?.reported_at ?? device.last_seen_at)} at `}
-              {`${(lastBeacon?.latitude ?? device.last_seen_lat ?? 0).toFixed(5)}, ${(lastBeacon?.longitude ?? device.last_seen_lng ?? 0).toFixed(5)}`}
+              {`Last seen ${formatRelativeFrom(lastSeenLabel)}${mapLocation ? ` at ${mapLocation.latitude.toFixed(5)}, ${mapLocation.longitude.toFixed(5)}` : ''}`}
             </Text>
           ) : (
             <Text style={styles.lastSeenText}>No beacon logs available yet.</Text>
           )}
           <View style={[styles.mapPlaceholder, { overflow: 'hidden' }]}>
             <StaticMapView 
-              latitude={lastBeacon?.latitude ?? device.last_seen_lat ?? 18.9388} 
-              longitude={lastBeacon?.longitude ?? device.last_seen_lng ?? 72.8354} 
+              latitude={mapRegion.latitude} 
+              longitude={mapRegion.longitude} 
               zoom={14} 
             />
           </View>
@@ -305,7 +379,13 @@ export default function DeviceDetailScreen() {
 
           {device.status === 'lost' ? (
             <>
-              <GradientButton title="Mark as Found" onPress={() => void markFoundNow()} loading={submitting} />
+              <Pressable
+                style={styles.ghostButton}
+                onPress={() => void markFoundNow()}
+                disabled={submitting}
+              >
+                <Text style={styles.ghostButtonText}>{submitting ? 'Updating...' : 'Mark as Found'}</Text>
+              </Pressable>
               <GradientButton
                 title="View Live Tracker"
                 onPress={() => router.push({ pathname: '/tracker/[deviceId]', params: { deviceId: device.id } })}

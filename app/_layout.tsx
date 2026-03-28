@@ -9,12 +9,23 @@ import { Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora'
 
 import { Colors } from '../constants/colors'
 import { AuthProvider, useAuth } from '../hooks/useAuth'
+import { enableBackgroundBleScanTask } from '../services/backgroundBleTask'
+import { bleService } from '../services/ble.service'
 import '../services/backgroundBleTask'
 
 function AuthGate() {
   const { session, loading } = useAuth()
   const segments = useSegments()
   const router = useRouter()
+
+  useEffect(() => {
+    if (!session) {
+      return
+    }
+
+    void enableBackgroundBleScanTask()
+    void bleService.requestScanPermissions()
+  }, [session])
 
   useEffect(() => {
     if (loading) {

@@ -9,6 +9,8 @@ type FoundCallback = (beaconId: string, rssi: number) => void
 const APP_SERVICE_UUID = '5P0R5000-0000-0000-0000-000000000000'
 const BLE_DEVICE_UUID_STORAGE_KEY = 'spors_ble_device_uuid'
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+const REPORT_COOLDOWN_MS = 30000
+const reportCooldown = new Map<string, number>()
 
 function encodeBase64Ascii(value: string) {
   let output = ''
@@ -92,6 +94,11 @@ class BLEService {
       listener: (error: unknown, device: { localName?: string | null; name?: string | null; rssi?: number | null; serviceUUIDs?: string[] | null; manufacturerData?: string | null } | null) => void
     ) => void
     stopDeviceScan: () => void
+    startAdvertising?: (
+      options: { serviceUUIDs: string[]; localName: string },
+      manufacturerData: string
+    ) => Promise<void> | void
+    stopAdvertising?: () => Promise<void> | void
     destroy?: () => void
   } | null = null
 
@@ -121,12 +128,14 @@ class BLEService {
         const requested = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE,
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         ])
 
         bluetoothGranted =
           requested[PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN] === PermissionsAndroid.RESULTS.GRANTED &&
           requested[PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT] === PermissionsAndroid.RESULTS.GRANTED &&
+          requested[PermissionsAndroid.PERMISSIONS.BLUETOOTH_ADVERTISE] === PermissionsAndroid.RESULTS.GRANTED &&
           requested[PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION] === PermissionsAndroid.RESULTS.GRANTED
       } else {
         const fine = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)
@@ -228,20 +237,40 @@ class BLEService {
     }
   }
 
-  startBroadcast(beaconId: string) {
+  async startBroadcast(beaconId: string) {
     this.stopBroadcast()
-    void this.updateBroadcastManufacturerData(beaconId)
-    void this.simulateBroadcastLocation(beaconId)
+    await this.updateBroadcastManufacturerData(beaconId)
+
+    const manufacturerDataBase64 = this.broadcastManufacturerData ?? ''
+    if (this.manager?.startAdvertising) {
+      try {
+        await this.manager.startAdvertising(
+          {
+            serviceUUIDs: [APP_SERVICE_UUID],
+            localName: 'SPORS',
+          },
+          manufacturerDataBase64
+        )
+      } catch {
+        // If native advertising fails, keep simulation active for backend updates.
+      }
+    }
 
     this.broadcastTimer = setInterval(() => {
       void this.simulateBroadcastLocation(beaconId)
     }, 30000)
+
+    void this.simulateBroadcastLocation(beaconId)
   }
 
   stopBroadcast() {
     if (this.broadcastTimer) {
       clearInterval(this.broadcastTimer)
       this.broadcastTimer = null
+    }
+
+    if (this.manager?.stopAdvertising) {
+      void this.manager.stopAdvertising()
     }
   }
 
@@ -272,6 +301,23 @@ class BLEService {
         updated_at: new Date().toISOString(),
       })
       .eq('id', deviceId)
+
+    const { data: deviceRow } = await supabase
+      .from('devices')
+      .select('owner_id, make, model')
+      .eq('id', deviceId)
+      .maybeSingle()
+
+    if (deviceRow?.owner_id) {
+      const deviceName = `${deviceRow.make ?? 'Device'} ${deviceRow.model ?? ''}`.trim()
+      await supabase.from('notifications').insert({
+        user_id: deviceRow.owner_id,
+        title: 'Your device was spotted',
+        body: `${deviceName} was detected nearby`,
+        type: 'beacon_detected',
+        reference_id: deviceId,
+      })
+    }
   }
 
   private extractBeaconId(device: {
@@ -300,6 +346,21 @@ class BLEService {
 
   private async logFoundBeacon(beaconId: string, rssi: number) {
     const normalizedUuid = this.normalizeBleUuid(beaconId)
+    const normalizedBeaconId = beaconId.replace(/^SPORS-/i, '').trim()
+    const reportKeys = Array.from(new Set([normalizedUuid, beaconId, normalizedBeaconId])).filter(
+      (value): value is string => Boolean(value)
+    )
+    const now = Date.now()
+
+    const inCooldown = reportKeys.some((key) => {
+      const lastReported = reportCooldown.get(key)
+      return typeof lastReported === 'number' && now - lastReported < REPORT_COOLDOWN_MS
+    })
+
+    if (inCooldown) {
+      return
+    }
+
     if (normalizedUuid) {
       const { data: uuidRows } = await supabase
         .from('devices')
@@ -310,11 +371,12 @@ class BLEService {
       const uuidMatchedDevice = (uuidRows?.[0] as DeviceRow | undefined) ?? null
       if (uuidMatchedDevice?.id) {
         await this.reportLocationForDevice(uuidMatchedDevice.id, rssi)
+        const updatedAt = Date.now()
+        reportKeys.forEach((key) => reportCooldown.set(key, updatedAt))
         return
       }
     }
 
-    const normalizedBeaconId = beaconId.replace(/^SPORS-/i, '').trim()
     const identifiers = Array.from(new Set([beaconId, normalizedBeaconId])).filter(Boolean)
 
     const { data: deviceRows } = await supabase
@@ -329,6 +391,8 @@ class BLEService {
     }
 
     await this.reportLocationForDevice(matchedDevice.id, rssi)
+    const updatedAt = Date.now()
+    reportKeys.forEach((key) => reportCooldown.set(key, updatedAt))
   }
 
   private async simulateBroadcastLocation(beaconId: string) {
