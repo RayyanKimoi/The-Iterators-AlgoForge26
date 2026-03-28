@@ -52,6 +52,7 @@ const config: ExpoConfig = {
       'ACCESS_BACKGROUND_LOCATION',
       'FOREGROUND_SERVICE',
       'FOREGROUND_SERVICE_CONNECTED_DEVICE',
+      'POST_NOTIFICATIONS',
       'android.permission.RECEIVE_BOOT_COMPLETED',
       'android.permission.WAKE_LOCK',
       'android.permission.FOREGROUND_SERVICE',
