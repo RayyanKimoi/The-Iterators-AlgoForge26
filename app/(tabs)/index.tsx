@@ -101,12 +101,16 @@ export default function HomeScreen() {
     }
 
     setLoadingNotifications(true)
-    const { data } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('notifications')
       .select('id, title, body, type, is_read, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(5)
+
+    if (fetchError) {
+      console.log('[SPORS-HOME] Notification fetch error:', fetchError.message)
+    }
 
     setNotifications((data as NotificationItem[]) ?? [])
     setLoadingNotifications(false)
@@ -118,7 +122,7 @@ export default function HomeScreen() {
 
   const totalDevices = devices.length
   const safeDevices = useMemo(
-    () => devices.filter((item) => item.status === 'registered').length,
+    () => devices.filter((item) => item.status === 'registered' || item.status === 'recovered').length,
     [devices]
   )
   const activeAlerts = useMemo(

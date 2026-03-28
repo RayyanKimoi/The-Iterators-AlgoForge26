@@ -101,15 +101,12 @@ export default function OnboardingScreen() {
   const { width } = useWindowDimensions()
 
   const onNext = () => {
-    if (activeIndex === STEPS.length - 1) {
-      router.navigate('/(auth)/sign-up')
-      return
+    if (activeIndex < STEPS.length - 1) {
+      listRef.current?.scrollToIndex({
+        index: activeIndex + 1,
+        animated: true,
+      })
     }
-
-    listRef.current?.scrollToIndex({
-      index: activeIndex + 1,
-      animated: true,
-    })
   }
 
   const renderItem = ({ item }: ListRenderItemInfo<StepItem>) => {
@@ -155,11 +152,28 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        <GradientButton
-          title={activeIndex === STEPS.length - 1 ? 'Get Started' : 'Next'}
-          onPress={onNext}
-          rightIcon={<MaterialIcons name="arrow-forward" size={22} color={Colors.onPrimary} />}
-        />
+        {activeIndex === STEPS.length - 1 ? (
+          <View style={styles.dualButtons}>
+            <GradientButton
+              title="Create Account"
+              onPress={() => router.navigate('/(auth)/sign-up')}
+              rightIcon={<MaterialIcons name="arrow-forward" size={22} color={Colors.onPrimary} />}
+            />
+            <Pressable
+              style={styles.signInButton}
+              onPress={() => router.navigate('/(auth)/sign-in')}
+            >
+              <Text style={styles.signInButtonText}>Already have an account? </Text>
+              <Text style={styles.signInButtonLink}>Sign In</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <GradientButton
+            title="Next"
+            onPress={onNext}
+            rightIcon={<MaterialIcons name="arrow-forward" size={22} color={Colors.onPrimary} />}
+          />
+        )}
       </View>
     </SafeAreaView>
   )
@@ -254,5 +268,25 @@ const styles = StyleSheet.create({
   dotActive: {
     width: 28,
     backgroundColor: Colors.primary,
+  },
+  dualButtons: {
+    gap: 12,
+  },
+  signInButton: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 2,
+  },
+  signInButtonText: {
+    color: Colors.onSurfaceVariant,
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 15,
+  },
+  signInButtonLink: {
+    color: Colors.primary,
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 15,
   },
 })

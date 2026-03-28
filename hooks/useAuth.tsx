@@ -133,7 +133,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return { error }
       },
       signOut: async () => {
-        await supabase.auth.signOut()
+        await supabase.auth.signOut({ scope: 'local' })
       },
       refreshProfile: async () => {
         const nextUserId = session?.user?.id

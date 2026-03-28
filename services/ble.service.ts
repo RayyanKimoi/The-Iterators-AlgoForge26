@@ -440,9 +440,6 @@ class BLEService {
     this.recentlySeen.set(cooldownKey, now)
 
     try {
-      const { data: authData } = await supabase.auth.getUser()
-      console.log('[SPORS-SCAN] Auth state:', authData.user?.id ?? 'NOT LOGGED IN')
-
       const { data, error: queryError } = await supabase
         .from('devices')
         .select('ble_device_uuid, status')
@@ -450,7 +447,10 @@ class BLEService {
         .not('ble_device_uuid', 'is', null)
         .limit(10)
 
-      console.log('[SPORS-SCAN] Supabase query result:', JSON.stringify({ data, error: queryError }))
+      if (queryError) {
+        console.log('[SPORS-SCAN] Supabase query error:', queryError.message)
+        return
+      }
 
       if (data && data.length > 0) {
         for (const row of data) {
@@ -458,6 +458,10 @@ class BLEService {
           if (uuid) {
             console.log(`[SPORS-SCAN] ✅ Found lost device from Supabase: ${uuid}`)
             onDeviceFound(uuid, rssi)
+            // Auto-report location to the device owner
+            void this.reportDetectedLostDevice(uuid, rssi).catch(() => {
+              // Ignore location report failures; scanning must continue.
+            })
             return
           }
         }

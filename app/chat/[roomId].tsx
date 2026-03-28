@@ -120,62 +120,74 @@ export default function ChatRoomScreen() {
     setError(null)
 
     try {
-      const roomResponsePromise = supabase
+      // First try loading room with device join
+      let roomData: ChatRoomRecord | null = null
+      const { data: roomWithDevice, error: roomError } = await supabase
         .from('chat_rooms')
         .select('id, owner_id, device_id, is_active, devices(make, model, imei_primary)')
         .eq('id', roomId)
-        .single()
+        .maybeSingle()
 
-      const messageResponsePromise = supabase
+      if (roomError) {
+        console.log('[SPORS-CHAT] Room query error:', roomError.message)
+        // Try without the device join as fallback
+        const { data: roomBasic, error: roomBasicError } = await supabase
+          .from('chat_rooms')
+          .select('id, owner_id, device_id, is_active')
+          .eq('id', roomId)
+          .maybeSingle()
+
+        if (roomBasicError || !roomBasic) {
+          throw new Error(roomBasicError?.message ?? 'Chat room not found.')
+        }
+
+        roomData = { ...roomBasic, devices: null } as ChatRoomRecord
+      } else {
+        roomData = roomWithDevice as ChatRoomRecord | null
+      }
+
+      if (!roomData) {
+        throw new Error('This chat room no longer exists.')
+      }
+
+      // Load messages
+      let normalizedMessages: ChatMessage[] = []
+      const { data: msgData, error: msgError } = await supabase
         .from('chat_messages')
         .select('id, room_id, sender_role, message_text, is_read, sent_at')
         .eq('room_id', roomId)
         .order('sent_at', { ascending: true })
 
-      const [roomResponse, initialMessageResponse] = await Promise.all([
-        roomResponsePromise,
-        messageResponsePromise,
-      ])
-
-      let normalizedMessages: ChatMessage[] = []
-      if (!initialMessageResponse.error) {
-        normalizedMessages = ((initialMessageResponse.data as ChatMessage[]) ?? []).map((message) => ({
+      if (!msgError) {
+        normalizedMessages = ((msgData as ChatMessage[]) ?? []).map((message) => ({
           ...message,
           message_text: message.message_text ?? message.content ?? '',
         }))
-      } else if (initialMessageResponse.error.message?.toLowerCase().includes('message_text')) {
-        const legacyMessageResponse = await supabase
+      } else if (msgError.message?.toLowerCase().includes('message_text')) {
+        // Fallback: try legacy column name
+        const { data: legacyData } = await supabase
           .from('chat_messages')
           .select('id, room_id, sender_role, content, is_read, sent_at')
           .eq('room_id', roomId)
           .order('sent_at', { ascending: true })
 
-        if (!legacyMessageResponse.error) {
-          normalizedMessages = ((legacyMessageResponse.data as ChatMessage[]) ?? []).map(
-            (message) => ({
-              ...message,
-              message_text: message.message_text ?? message.content ?? '',
-            })
-          )
+        if (legacyData) {
+          normalizedMessages = ((legacyData as ChatMessage[]) ?? []).map((message) => ({
+            ...message,
+            message_text: message.message_text ?? message.content ?? '',
+          }))
         }
+      } else {
+        console.log('[SPORS-CHAT] Messages query error:', msgError.message)
       }
 
-      if (roomResponse.error) {
-        throw roomResponse.error
-      }
-
-      if (initialMessageResponse.error && !normalizedMessages.length) {
-        throw initialMessageResponse.error
-      }
-
-      const nextRoom = roomResponse.data as ChatRoomRecord
-
-      setRoom(nextRoom)
+      setRoom(roomData)
       setMessages(normalizedMessages)
 
-      const resolvedRole = user?.id === nextRoom.owner_id ? 'owner' : 'finder'
+      const resolvedRole = user?.id === roomData.owner_id ? 'owner' : 'finder'
       await markIncomingAsRead(resolvedRole)
     } catch (nextError) {
+      console.log('[SPORS-CHAT] Fetch error:', nextError)
       setError(nextError instanceof Error ? nextError.message : 'Unable to load this room.')
     } finally {
       setLoading(false)

@@ -97,6 +97,15 @@ function formatRelativeFrom(dateString?: string | null) {
   return `${days} days ago`
 }
 
+function getSignalInfo(rssi: number | null): { label: string; color: string } | null {
+  if (rssi == null) return null
+  if (rssi > -50) return { label: 'Excellent', color: '#46F1BB' }
+  if (rssi > -70) return { label: 'Good', color: '#8BC34A' }
+  if (rssi > -85) return { label: 'Fair', color: '#FFB95F' }
+  if (rssi > -95) return { label: 'Weak', color: '#FF7043' }
+  return { label: 'Very Weak', color: '#FF4E4E' }
+}
+
 export default function DeviceDetailScreen() {
   const router = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -234,18 +243,44 @@ export default function DeviceDetailScreen() {
       return
     }
 
-    Alert.alert('Delete Device', 'This action cannot be undone.', [
+    Alert.alert('Delete Device', 'This action cannot be undone. All related data (chat rooms, beacon logs, reports) will also be deleted.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          const { error: deleteError } = await supabase.from('devices').delete().eq('id', device.id)
-          if (deleteError) {
-            Alert.alert('Error', deleteError.message)
-            return
+          try {
+            // Delete related records first to avoid foreign key violations
+            // 1. Get chat room IDs for this device
+            const { data: rooms } = await supabase
+              .from('chat_rooms')
+              .select('id')
+              .eq('device_id', device.id)
+
+            if (rooms && rooms.length > 0) {
+              const roomIds = rooms.map((r: { id: string }) => r.id)
+              // 2. Delete chat messages in those rooms
+              await supabase.from('chat_messages').delete().in('room_id', roomIds)
+              // 3. Delete chat rooms
+              await supabase.from('chat_rooms').delete().eq('device_id', device.id)
+            }
+
+            // 4. Delete beacon logs
+            await supabase.from('beacon_logs').delete().eq('device_id', device.id)
+
+            // 5. Delete lost reports
+            await supabase.from('lost_reports').delete().eq('device_id', device.id)
+
+            // 6. Finally delete the device
+            const { error: deleteError } = await supabase.from('devices').delete().eq('id', device.id)
+            if (deleteError) {
+              Alert.alert('Error', deleteError.message)
+              return
+            }
+            router.replace('/(tabs)/devices')
+          } catch (err) {
+            Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete device.')
           }
-          router.replace('/(tabs)/devices')
         },
       },
     ])
@@ -291,7 +326,8 @@ export default function DeviceDetailScreen() {
         longitudeDelta: 0.01,
       }
     : FALLBACK_REGION
-  const signalLabel = liveRssi ?? lastBeacon?.rssi ?? null
+  const signalRaw = liveRssi ?? lastBeacon?.rssi ?? null
+  const signalInfo = getSignalInfo(signalRaw)
 
   return (
     <SafeAreaView style={styles.container}>
@@ -356,7 +392,7 @@ export default function DeviceDetailScreen() {
         </View>
 
         <View style={styles.lastSeenCard}>
-          <Text style={styles.sectionTitle}>{`Last Seen${signalLabel != null ? ` • Signal: ${signalLabel} dBm` : ''}`}</Text>
+          <Text style={styles.sectionTitle}>{`Last Seen${signalInfo ? ` • Signal: ${signalInfo.label}` : ''}`}</Text>
           {lastSeenLabel || mapLocation ? (
             <Text style={styles.lastSeenText}>
               {`Last seen ${formatRelativeFrom(lastSeenLabel)}${mapLocation ? ` at ${mapLocation.latitude.toFixed(5)}, ${mapLocation.longitude.toFixed(5)}` : ''}`}
@@ -374,7 +410,7 @@ export default function DeviceDetailScreen() {
         </View>
 
         <View style={styles.actionsWrap}>
-          {device.status === 'registered' ? (
+          {device.status === 'registered' || device.status === 'recovered' ? (
             <GradientButton title="Report as Lost" onPress={() => setLostModal(true)} />
           ) : null}
 

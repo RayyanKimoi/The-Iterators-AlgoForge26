@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
 import { useRouter } from 'expo-router'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -61,6 +61,129 @@ function getVisualsByType(type: string) {
   } as const
 }
 
+// Swipeable notification card component
+function SwipeableNotificationCard({
+  item,
+  onPress,
+  onDismiss,
+}: {
+  item: NotificationItem
+  onPress: () => void
+  onDismiss: (id: string) => void
+}) {
+  const translateX = useRef(new Animated.Value(0)).current
+  const itemHeight = useRef(new Animated.Value(1)).current
+  const panStartX = useRef(0)
+  const currentTranslateX = useRef(0)
+
+  const visuals = getVisualsByType(item.type)
+
+  const handleTouchStart = useCallback(
+    (e: { nativeEvent: { pageX: number } }) => {
+      panStartX.current = e.nativeEvent.pageX
+    },
+    []
+  )
+
+  const handleTouchMove = useCallback(
+    (e: { nativeEvent: { pageX: number } }) => {
+      const dx = e.nativeEvent.pageX - panStartX.current
+      // Only allow swiping left
+      const clampedDx = Math.min(0, dx)
+      currentTranslateX.current = clampedDx
+      translateX.setValue(clampedDx)
+    },
+    [translateX]
+  )
+
+  const handleTouchEnd = useCallback(() => {
+    if (currentTranslateX.current < -120) {
+      // Swipe far enough → dismiss
+      Animated.parallel([
+        Animated.timing(translateX, {
+          toValue: -500,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(itemHeight, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: false,
+          delay: 150,
+        }),
+      ]).start(() => {
+        onDismiss(item.id)
+      })
+    } else {
+      // Snap back
+      Animated.spring(translateX, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 40,
+        friction: 8,
+      }).start()
+      currentTranslateX.current = 0
+    }
+  }, [translateX, itemHeight, item.id, onDismiss])
+
+  const opacity = translateX.interpolate({
+    inputRange: [-200, 0],
+    outputRange: [0.3, 1],
+    extrapolate: 'clamp',
+  })
+
+  return (
+    <Animated.View
+      style={[
+        styles.swipeContainer,
+        {
+          maxHeight: itemHeight.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 120],
+          }),
+          opacity: itemHeight,
+          marginBottom: itemHeight.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 12],
+          }),
+        },
+      ]}
+    >
+      {/* Red delete background */}
+      <View style={styles.deleteBackground}>
+        <MaterialIcons name="delete-sweep" size={22} color="#fff" />
+        <Text style={styles.deleteText}>Dismiss</Text>
+      </View>
+
+      {/* Swipeable foreground */}
+      <Animated.View
+        style={[{ transform: [{ translateX }], opacity }]}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <Pressable
+          style={[styles.notificationCard, !item.is_read && styles.notificationCardUnread]}
+          onPress={onPress}
+        >
+          <View style={[styles.iconWrap, { backgroundColor: visuals.bg }]}>
+            <MaterialIcons name={visuals.icon} size={18} color={visuals.tint} />
+          </View>
+
+          <View style={styles.textWrap}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.body} numberOfLines={2}>
+              {item.body}
+            </Text>
+          </View>
+
+          <Text style={styles.time}>{getRelativeTime(item.created_at)}</Text>
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
+  )
+}
+
 export default function AlertsScreen() {
   const router = useRouter()
   const { user } = useAuth()
@@ -114,6 +237,23 @@ export default function AlertsScreen() {
     setNotifications((current) => current.map((item) => ({ ...item, is_read: true })))
     setToastMessage('All alerts marked as read')
   }, [unreadCount, user?.id])
+
+  const dismissNotification = useCallback(
+    async (notificationId: string) => {
+      // Remove from local state immediately
+      setNotifications((current) => current.filter((item) => item.id !== notificationId))
+
+      // Mark as read in database
+      if (user?.id) {
+        await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('id', notificationId)
+          .eq('user_id', user.id)
+      }
+    },
+    [user?.id]
+  )
 
   const openNotification = useCallback(
     async (item: NotificationItem) => {
@@ -190,31 +330,19 @@ export default function AlertsScreen() {
               <MaterialIcons name="shield" size={26} color={Colors.primary} />
             </View>
             <Text style={styles.emptyTitle}>No alerts. Your devices are safe.</Text>
+            <Text style={styles.emptyHint}>Swipe left on alerts to dismiss them</Text>
           </View>
         ) : null}
 
-        {!error && notifications.map((item) => {
-          const visuals = getVisualsByType(item.type)
-
-          return (
-            <Pressable
+        {!error &&
+          notifications.map((item) => (
+            <SwipeableNotificationCard
               key={item.id}
-              style={[styles.notificationCard, !item.is_read && styles.notificationCardUnread]}
+              item={item}
               onPress={() => void openNotification(item)}
-            >
-              <View style={[styles.iconWrap, { backgroundColor: visuals.bg }]}>
-                <MaterialIcons name={visuals.icon} size={18} color={visuals.tint} />
-              </View>
-
-              <View style={styles.textWrap}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.body}>{item.body}</Text>
-              </View>
-
-              <Text style={styles.time}>{getRelativeTime(item.created_at)}</Text>
-            </Pressable>
-          )
-        })}
+              onDismiss={(id) => void dismissNotification(id)}
+            />
+          ))}
       </ScrollView>
     </SafeAreaView>
   )
@@ -242,7 +370,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 12,
     paddingBottom: 110,
-    gap: 12,
   },
   skeletonWrap: {
     gap: 10,
@@ -268,6 +395,30 @@ const styles = StyleSheet.create({
     color: Colors.onSurfaceVariant,
     fontFamily: FontFamily.bodyRegular,
     fontSize: 14,
+  },
+  emptyHint: {
+    color: Colors.outline,
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 12,
+  },
+  swipeContainer: {
+    overflow: 'hidden',
+    borderRadius: 16,
+  },
+  deleteBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#c62828',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingRight: 24,
+    gap: 6,
+  },
+  deleteText: {
+    color: '#fff',
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 13,
   },
   notificationCard: {
     borderRadius: 16,

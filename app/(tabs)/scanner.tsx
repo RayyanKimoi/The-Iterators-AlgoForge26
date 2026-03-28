@@ -420,7 +420,7 @@ export default function ScannerScreen() {
                           />
                         ))}
                       </View>
-                      <Text style={styles.rssiText}>{`${item.rssi} dBm`}</Text>
+                      <Text style={styles.rssiText}>{item.rssi > -50 ? 'Excellent' : item.rssi > -70 ? 'Good' : item.rssi > -85 ? 'Fair' : item.rssi > -95 ? 'Weak' : 'Very Weak'}</Text>
                       {typeof item.distanceMeters === 'number' ? (
                         <Text style={styles.distanceText}>{`~${item.distanceMeters} m`}</Text>
                       ) : null}
