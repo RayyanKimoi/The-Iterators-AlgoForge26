@@ -6,13 +6,26 @@ import { supabase } from '../lib/supabase'
 
 type FoundCallback = (beaconId: string, rssi: number) => void
 
-const APP_SERVICE_UUID = '5P0R5000-0000-0000-0000-000000000000'
+export const APP_SERVICE_UUID = '5P0R5000-0000-0000-0000-000000000000'
 const BLE_DEVICE_UUID_STORAGE_KEY = 'spors_ble_device_uuid'
+const BLE_BROADCASTING_MODE_STORAGE_KEY = 'spors_ble_broadcasting_mode'
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 const REPORT_COOLDOWN_MS = 30000
 const reportCooldown = new Map<string, number>()
 const VALID_SERVICE_UUID_RE = /^([0-9a-f]{4}|[0-9a-f]{8}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
-const scanServiceUuids = VALID_SERVICE_UUID_RE.test(APP_SERVICE_UUID) ? [APP_SERVICE_UUID] : null
+
+function toNativeBleServiceUuid(value: string) {
+  // BLE service UUIDs must be hexadecimal; this maps SPORS mnemonic characters to hex-safe values.
+  const mapped = value.replace(/p/gi, 'a').replace(/r/gi, 'f').toLowerCase()
+  if (!VALID_SERVICE_UUID_RE.test(mapped)) {
+    throw new Error('Invalid APP_SERVICE_UUID configuration for BLE advertising/scanning.')
+  }
+
+  return mapped
+}
+
+const APP_SERVICE_UUID_NATIVE = toNativeBleServiceUuid(APP_SERVICE_UUID)
+const scanServiceUuids = [APP_SERVICE_UUID_NATIVE]
 
 function encodeBase64Ascii(value: string) {
   let output = ''
@@ -96,6 +109,7 @@ class BLEService {
       listener: (error: unknown, device: { localName?: string | null; name?: string | null; rssi?: number | null; serviceUUIDs?: string[] | null; manufacturerData?: string | null } | null) => void
     ) => void
     stopDeviceScan: () => void
+    state?: () => Promise<string>
     startAdvertising?: (
       options: { serviceUUIDs: string[]; localName: string },
       manufacturerData: string
@@ -105,10 +119,10 @@ class BLEService {
   } | null = null
 
   private scanSimulationTimer: ReturnType<typeof setTimeout> | null = null
-  private broadcastTimer: ReturnType<typeof setInterval> | null = null
   private broadcastManufacturerData: string | null = null
   private recentlySeen = new Map<string, number>()
   private scanning = false
+  private broadcastingMode: boolean | null = null
 
   constructor() {
     try {
@@ -121,8 +135,52 @@ class BLEService {
     }
   }
 
+  private async ensureForegroundLocationPermission() {
+    const current = await Location.getForegroundPermissionsAsync()
+    if (current.status === 'granted') {
+      return true
+    }
+
+    const requested = await Location.requestForegroundPermissionsAsync()
+    return requested.status === 'granted'
+  }
+
+  private async ensureBackgroundLocationPermission() {
+    if (Platform.OS !== 'android' || Platform.Version < 29) {
+      return true
+    }
+
+    const existing = await Location.getBackgroundPermissionsAsync()
+    if (existing.status === 'granted') {
+      return true
+    }
+
+    const requested = await Location.requestBackgroundPermissionsAsync()
+    return requested.status === 'granted'
+  }
+
+  private async getBroadcastingMode() {
+    if (typeof this.broadcastingMode === 'boolean') {
+      return this.broadcastingMode
+    }
+
+    const stored = await AsyncStorage.getItem(BLE_BROADCASTING_MODE_STORAGE_KEY)
+    this.broadcastingMode = stored === '1'
+    return this.broadcastingMode
+  }
+
+  private async setBroadcastingMode(enabled: boolean) {
+    this.broadcastingMode = enabled
+    await AsyncStorage.setItem(BLE_BROADCASTING_MODE_STORAGE_KEY, enabled ? '1' : '0')
+  }
+
+  async isBroadcastingMode() {
+    return this.getBroadcastingMode()
+  }
+
   async requestScanPermissions() {
-    const locationPermission = await Location.requestForegroundPermissionsAsync()
+    const locationGranted = await this.ensureForegroundLocationPermission()
+    await this.ensureBackgroundLocationPermission()
 
     let bluetoothGranted = true
     if (Platform.OS === 'android') {
@@ -143,7 +201,18 @@ class BLEService {
       }
     }
 
-    return locationPermission.status === 'granted' && bluetoothGranted
+    return locationGranted && bluetoothGranted
+  }
+
+  private async ensureBluetoothPoweredOn() {
+    if (!this.manager?.state) {
+      return
+    }
+
+    const state = await this.manager.state()
+    if (state !== 'PoweredOn') {
+      throw new Error('Bluetooth is off. Please turn on Bluetooth and try again.')
+    }
   }
 
   async requestBroadcastPermissions() {
@@ -181,65 +250,52 @@ class BLEService {
   }
 
   async scanForSPORSDevices(onDeviceFound: FoundCallback) {
+    const broadcasting = await this.getBroadcastingMode()
+    if (broadcasting) {
+      throw new Error('Broadcast mode is active on this device. Scanning is disabled for lost-owner mode.')
+    }
+
     this.stopScan()
-    this.scanning = true
 
     const granted = await this.requestScanPermissions()
     if (!granted) {
       throw new Error('Location and bluetooth permissions are required for scanning.')
     }
 
-    const storedUuid = await this.getStoredBleDeviceUuid()
-
     if (!this.manager) {
-      console.log('BLE scanning active (simulated)')
-      this.scanSimulationTimer = setTimeout(() => {
-        if (!this.scanning) {
-          return
-        }
-
-        const beaconId = storedUuid ?? 'SPORS-SIM-DEMO'
-        const rssi = -58
-        onDeviceFound(beaconId, rssi)
-        void this.logFoundBeacon(beaconId, rssi)
-      }, 8000)
-      return
+      throw new Error('BLE is not available on this device.')
     }
+
+    await this.ensureBluetoothPoweredOn()
+    this.scanning = true
 
     this.manager.startDeviceScan(scanServiceUuids, { allowDuplicates: false }, (error, device) => {
       if (error || !device) {
         if (error) {
-          console.log('BLE scan error. Switching to simulation mode.')
-          this.stopScan()
-          this.scanSimulationTimer = setTimeout(() => {
-            if (!this.scanning) {
-              return
-            }
-
-            const beaconId = storedUuid ?? 'SPORS-SIM-DEMO'
-            const rssi = -60
-            onDeviceFound(beaconId, rssi)
-            void this.logFoundBeacon(beaconId, rssi)
-          }, 8000)
+          console.log('BLE scan error', error)
         }
+
+        this.stopScan()
         return
       }
 
-      const beaconId = this.extractBeaconId(device)
-      if (!beaconId) {
+      const bleDeviceUuid = this.readBleUuidFromManufacturerData(device.manufacturerData)
+      if (!bleDeviceUuid) {
         return
       }
 
       const now = Date.now()
-      const cooldown = this.recentlySeen.get(beaconId)
+      const cooldown = this.recentlySeen.get(bleDeviceUuid)
       if (cooldown && now - cooldown < 4500) {
         return
       }
 
-      this.recentlySeen.set(beaconId, now)
+      this.recentlySeen.set(bleDeviceUuid, now)
       const rssi = typeof device.rssi === 'number' ? device.rssi : -96
-      onDeviceFound(beaconId, rssi)
-      void this.logFoundBeacon(beaconId, rssi)
+      onDeviceFound(bleDeviceUuid, rssi)
+      void this.reportDetectedLostDevice(bleDeviceUuid, rssi).catch(() => {
+        // Ignore reporting failures; scanning must continue.
+      })
     })
   }
 
@@ -257,208 +313,191 @@ class BLEService {
     }
   }
 
-  async startBroadcast(beaconId: string) {
-    this.stopBroadcast()
+  async startBroadcasting(bleDeviceUuid: string) {
+    await this.stopBroadcasting()
+    const locationGranted = await this.ensureForegroundLocationPermission()
+    if (!locationGranted) {
+      throw new Error('Location permission is required to activate lost mode beacon.')
+    }
+
     const broadcastGranted = await this.requestBroadcastPermissions()
     if (!broadcastGranted) {
       throw new Error('Bluetooth advertise permission is required to broadcast lost device beacon.')
     }
 
-    await this.updateBroadcastManufacturerData(beaconId)
-
-    const manufacturerDataBase64 = this.broadcastManufacturerData ?? ''
-    if (this.manager?.startAdvertising) {
-      try {
-        await this.manager.startAdvertising(
-          {
-            serviceUUIDs: [APP_SERVICE_UUID],
-            localName: 'SPORS',
-          },
-          manufacturerDataBase64
-        )
-      } catch {
-        // If native advertising fails, keep simulation active for backend updates.
-      }
+    const normalizedUuid = this.normalizeBleUuid(bleDeviceUuid)
+    if (!normalizedUuid) {
+      throw new Error('Invalid BLE device UUID for broadcasting.')
     }
 
-    this.broadcastTimer = setInterval(() => {
-      void this.simulateBroadcastLocation(beaconId)
-    }, 30000)
+    if (!this.manager?.startAdvertising) {
+      throw new Error('BLE advertising is not available in this app build. Peripheral advertising API is missing.')
+    }
 
-    void this.simulateBroadcastLocation(beaconId)
+    await this.ensureBluetoothPoweredOn()
+
+    await this.setStoredBleDeviceUuid(normalizedUuid)
+    this.broadcastManufacturerData = this.encodeBleUuidForManufacturerData(normalizedUuid)
+
+    try {
+      await this.manager.startAdvertising(
+        {
+          serviceUUIDs: [APP_SERVICE_UUID_NATIVE],
+          localName: 'SPORS',
+        },
+        this.broadcastManufacturerData
+      )
+      await this.setBroadcastingMode(true)
+    } catch {
+      await this.setBroadcastingMode(false)
+      throw new Error('Unable to start BLE broadcasting on this device.')
+    }
   }
 
-  stopBroadcast() {
-    if (this.broadcastTimer) {
-      clearInterval(this.broadcastTimer)
-      this.broadcastTimer = null
-    }
+  async startBroadcast(bleDeviceUuid: string) {
+    await this.startBroadcasting(bleDeviceUuid)
+  }
 
+  async stopBroadcasting() {
     if (this.manager?.stopAdvertising) {
       void this.manager.stopAdvertising()
     }
+
+    await this.setBroadcastingMode(false)
+  }
+
+  stopBroadcast() {
+    void this.stopBroadcasting()
   }
 
   async reportLocationForDevice(deviceId: string, rssi: number | null = null) {
-    const locationPermission = await Location.getForegroundPermissionsAsync()
-    if (locationPermission.status !== 'granted') {
+    const { data: deviceRow } = await supabase
+      .from('devices')
+      .select('id, owner_id, make, model, status, ble_device_uuid')
+      .eq('id', deviceId)
+      .maybeSingle()
+
+    const row =
+      (deviceRow as {
+        id: string
+        owner_id: string
+        make: string | null
+        model: string | null
+        status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
+        ble_device_uuid: string | null
+      } | null) ?? null
+
+    if (!row?.id) {
       return
     }
 
-    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
     const { data: authData } = await supabase.auth.getUser()
+    await this.writeLocationReport({
+      deviceId: row.id,
+      ownerId: row.owner_id,
+      make: row.make,
+      model: row.model,
+      reporterId: authData.user?.id ?? null,
+      rssi,
+    })
+  }
+
+  private shouldReport(bleDeviceUuid: string) {
+    const last = reportCooldown.get(bleDeviceUuid)
+    const now = Date.now()
+    if (last && now - last < REPORT_COOLDOWN_MS) {
+      return false
+    }
+
+    reportCooldown.set(bleDeviceUuid, now)
+    return true
+  }
+
+  private async reportDetectedLostDevice(bleDeviceUuid: string, rssi: number) {
+    const normalizedUuid = this.normalizeBleUuid(bleDeviceUuid)
+    if (!normalizedUuid || !this.shouldReport(normalizedUuid)) {
+      return
+    }
+
+    const { data: row } = await supabase
+      .from('devices')
+      .select('id, owner_id, make, model, status')
+      .eq('ble_device_uuid', normalizedUuid)
+      .limit(1)
+      .maybeSingle()
+
+    const device =
+      (row as {
+        id: string
+        owner_id: string
+        make: string | null
+        model: string | null
+        status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
+      } | null) ?? null
+
+    if (!device?.id || device.status !== 'lost') {
+      return
+    }
+
+    const { data: authData } = await supabase.auth.getUser()
+    const reporterId = authData.user?.id ?? null
+    if (reporterId && reporterId === device.owner_id) {
+      return
+    }
+
+    await this.writeLocationReport({
+      deviceId: device.id,
+      ownerId: device.owner_id,
+      make: device.make,
+      model: device.model,
+      reporterId,
+      rssi,
+    })
+  }
+
+  private async writeLocationReport(params: {
+    deviceId: string
+    ownerId: string
+    make: string | null
+    model: string | null
+    reporterId: string | null
+    rssi: number | null
+  }) {
+    const locationGranted = await this.ensureForegroundLocationPermission()
+    if (!locationGranted) {
+      throw new Error('Location permission is required to report lost-device sightings.')
+    }
+
+    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
+    const nowIso = new Date().toISOString()
 
     await supabase.from('beacon_logs').insert({
-      device_id: deviceId,
-      reporter_id: authData.user?.id ?? null,
+      device_id: params.deviceId,
+      reporter_id: params.reporterId,
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
       accuracy_meters: position.coords.accuracy ?? null,
-      rssi,
+      rssi: params.rssi,
     })
 
     await supabase
       .from('devices')
       .update({
-        last_seen_at: new Date().toISOString(),
+        last_seen_at: nowIso,
         last_seen_lat: position.coords.latitude,
         last_seen_lng: position.coords.longitude,
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       })
-      .eq('id', deviceId)
+      .eq('id', params.deviceId)
 
-    const { data: deviceRow } = await supabase
-      .from('devices')
-      .select('owner_id, make, model')
-      .eq('id', deviceId)
-      .maybeSingle()
-
-    if (deviceRow?.owner_id) {
-      const deviceName = `${deviceRow.make ?? 'Device'} ${deviceRow.model ?? ''}`.trim()
-      await supabase.from('notifications').insert({
-        user_id: deviceRow.owner_id,
-        title: 'Your device was spotted',
-        body: `${deviceName} was detected nearby`,
-        type: 'beacon_detected',
-        reference_id: deviceId,
-      })
-    }
-  }
-
-  private extractBeaconId(device: {
-    localName?: string | null
-    name?: string | null
-    serviceUUIDs?: string[] | null
-    manufacturerData?: string | null
-  }) {
-    const manufacturerUuid = this.readBleUuidFromManufacturerData(device.manufacturerData)
-    if (manufacturerUuid) {
-      return manufacturerUuid
-    }
-
-    const name = device.localName || device.name
-    if (name && name.toUpperCase().startsWith('SPORS-')) {
-      return name.replace(/^SPORS-/i, '').trim() || name
-    }
-
-    const uuidMatch = (device.serviceUUIDs ?? []).find((item) => item.toUpperCase().includes('SPORS-'))
-    if (uuidMatch) {
-      return uuidMatch
-    }
-
-    return null
-  }
-
-  private async logFoundBeacon(beaconId: string, rssi: number) {
-    const normalizedUuid = this.normalizeBleUuid(beaconId)
-    const normalizedBeaconId = beaconId.replace(/^SPORS-/i, '').trim()
-    const reportKeys = Array.from(new Set([normalizedUuid, beaconId, normalizedBeaconId])).filter(
-      (value): value is string => Boolean(value)
-    )
-    const now = Date.now()
-
-    const inCooldown = reportKeys.some((key) => {
-      const lastReported = reportCooldown.get(key)
-      return typeof lastReported === 'number' && now - lastReported < REPORT_COOLDOWN_MS
+    const deviceName = `${params.make ?? ''} ${params.model ?? ''}`.trim() || 'Device'
+    await supabase.from('notifications').insert({
+      user_id: params.ownerId,
+      title: 'Device spotted!',
+      body: `${deviceName} was detected near you`,
+      type: 'beacon_detected',
+      reference_id: params.deviceId,
     })
-
-    if (inCooldown) {
-      return
-    }
-
-    if (normalizedUuid) {
-      const { data: uuidRows } = await supabase
-        .from('devices')
-        .select('id, status, ble_beacon_id, ble_device_uuid')
-        .eq('ble_device_uuid', normalizedUuid)
-        .limit(1)
-
-      const uuidMatchedDevice = (uuidRows?.[0] as DeviceRow | undefined) ?? null
-      if (uuidMatchedDevice?.id) {
-        if (uuidMatchedDevice.status !== 'lost') {
-          return
-        }
-
-        await this.reportLocationForDevice(uuidMatchedDevice.id, rssi)
-        const updatedAt = Date.now()
-        reportKeys.forEach((key) => reportCooldown.set(key, updatedAt))
-        return
-      }
-    }
-
-    const identifiers = Array.from(new Set([beaconId, normalizedBeaconId])).filter(Boolean)
-
-    const { data: deviceRows } = await supabase
-      .from('devices')
-      .select('id, status, ble_beacon_id, ble_device_uuid')
-      .in('ble_beacon_id', identifiers)
-      .limit(1)
-
-    const matchedDevice = (deviceRows?.[0] as DeviceRow | undefined) ?? null
-    if (!matchedDevice?.id) {
-      return
-    }
-
-    if (matchedDevice.status !== 'lost') {
-      return
-    }
-
-    await this.reportLocationForDevice(matchedDevice.id, rssi)
-    const updatedAt = Date.now()
-    reportKeys.forEach((key) => reportCooldown.set(key, updatedAt))
-  }
-
-  private async simulateBroadcastLocation(beaconId: string) {
-    const manufacturerUuid = this.readBleUuidFromManufacturerData(this.broadcastManufacturerData)
-    if (manufacturerUuid) {
-      const { data: uuidRows } = await supabase
-        .from('devices')
-        .select('id')
-        .eq('ble_device_uuid', manufacturerUuid)
-        .limit(1)
-
-      const uuidMatchedDevice = uuidRows?.[0]
-      if (uuidMatchedDevice?.id) {
-        await this.reportLocationForDevice(uuidMatchedDevice.id)
-        return
-      }
-    }
-
-    const normalizedBeaconId = beaconId.replace(/^SPORS-/i, '').trim()
-    const identifiers = Array.from(new Set([beaconId, normalizedBeaconId])).filter(Boolean)
-
-    const { data: deviceRows } = await supabase
-      .from('devices')
-      .select('id')
-      .in('ble_beacon_id', identifiers)
-      .limit(1)
-
-    const matchedDevice = deviceRows?.[0]
-    if (!matchedDevice?.id) {
-      return
-    }
-
-    await this.reportLocationForDevice(matchedDevice.id)
   }
 
   private normalizeBleUuid(value: string | null | undefined) {
@@ -488,16 +527,6 @@ class BLEService {
 
   private encodeBleUuidForManufacturerData(bleDeviceUuid: string) {
     return encodeBase64(bleDeviceUuid)
-  }
-
-  private async updateBroadcastManufacturerData(beaconId: string) {
-    const storedUuid = await this.getStoredBleDeviceUuid()
-    const fallbackUuid = this.normalizeBleUuid(beaconId)
-    const bleDeviceUuid = storedUuid ?? fallbackUuid
-
-    this.broadcastManufacturerData = bleDeviceUuid
-      ? this.encodeBleUuidForManufacturerData(bleDeviceUuid)
-      : null
   }
 }
 

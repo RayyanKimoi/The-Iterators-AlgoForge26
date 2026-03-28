@@ -4,13 +4,19 @@ import * as Location from 'expo-location'
 
 import { bleService } from './ble.service'
 
-export const BLE_SCAN_TASK = 'SPORS_BLE_SCAN'
+export const BLE_SCAN_TASK = 'SPORS_BLE_SCAN_TASK'
 
 if (!TaskManager.isTaskDefined(BLE_SCAN_TASK)) {
   TaskManager.defineTask(BLE_SCAN_TASK, async () => {
     try {
-      const permission = await Location.getForegroundPermissionsAsync()
-      if (permission.status !== 'granted') {
+      const isBroadcasting = await bleService.isBroadcastingMode()
+      if (isBroadcasting) {
+        return BackgroundFetch.BackgroundFetchResult.NoData
+      }
+
+      const fgPermission = await Location.getForegroundPermissionsAsync()
+      const bgPermission = await Location.getBackgroundPermissionsAsync()
+      if (fgPermission.status !== 'granted' || bgPermission.status !== 'granted') {
         return BackgroundFetch.BackgroundFetchResult.NoData
       }
 

@@ -195,31 +195,9 @@ export default function ScannerScreen() {
     []
   )
 
-  const ensureAutoScanForLostDevices = useCallback(async () => {
-    const { count, error } = await supabase
-      .from('devices')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'lost')
-
-    if (error) {
-      return
-    }
-
-    const hasLostDevices = (count ?? 0) > 0
-    if (hasLostDevices && !isScanning) {
-      try {
-        await bleService.scanForSPORSDevices((beaconId, rssi) => {
-          void upsertDetectedDevice(beaconId, rssi)
-        })
-        setIsScanning(true)
-      } catch {
-        setIsScanning(false)
-      }
-    }
-  }, [isScanning, upsertDetectedDevice])
-
   const startScanning = useCallback(async () => {
     try {
+      setDetectedDevices([])
       await bleService.scanForSPORSDevices((beaconId, rssi) => {
         void upsertDetectedDevice(beaconId, rssi)
       })
@@ -245,24 +223,10 @@ export default function ScannerScreen() {
   }, [isScanning, startScanning, stopScanning])
 
   useEffect(() => {
-    void ensureAutoScanForLostDevices()
-
-    const channel = supabase
-      .channel('lost-devices-auto-scan')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'devices' },
-        () => {
-          void ensureAutoScanForLostDevices()
-        }
-      )
-      .subscribe()
-
     return () => {
       bleService.stopScan()
-      void supabase.removeChannel(channel)
     }
-  }, [ensureAutoScanForLostDevices])
+  }, [])
 
   const startAnonymousChat = useCallback(async (device: DetectedDevice) => {
     if (!device.deviceId || !device.ownerId) {
@@ -361,14 +325,14 @@ export default function ScannerScreen() {
     [detectedDevices]
   )
 
-  const statusLabel = isScanning
-    ? detectedDevices.length > 0
-      ? `${detectedDevices.length} scanned • ${nearbyCount} nearby`
-      : 'Scanning...'
-    : 'Scanner paused'
+  const statusLabel = isScanning ? 'Scanner active' : 'Scanner paused'
 
   const protectedCount = useMemo(() => {
-    const unique = new Set(detectedDevices.map((item) => item.beaconId))
+    const unique = new Set(
+      detectedDevices
+        .filter((item) => item.status === 'lost')
+        .map((item) => item.deviceId ?? item.beaconId)
+    )
     return unique.size
   }, [detectedDevices])
 

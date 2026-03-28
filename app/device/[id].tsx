@@ -56,6 +56,7 @@ import { Colors } from '../../constants/colors'
 import { FontFamily } from '../../constants/typography'
 import { markFound, reportLost, useDevice } from '../../hooks/useDevices'
 import { supabase } from '../../lib/supabase'
+import { disableBackgroundBleScanTask, enableBackgroundBleScanTask } from '../../services/backgroundBleTask'
 import { bleService } from '../../services/ble.service'
 
 type LostForm = {
@@ -186,6 +187,11 @@ export default function DeviceDetailScreen() {
 
     setSubmitting(true)
     try {
+      const broadcastPermissionsGranted = await bleService.requestBroadcastPermissions()
+      if (!broadcastPermissionsGranted) {
+        throw new Error('Bluetooth and location permissions are required. Allow Nearby Devices and Location for SPORS.')
+      }
+
       await reportLost(device.id, {
         incident_description: lostForm.incident_description.trim(),
         last_known_address: lostForm.last_known_address.trim(),
@@ -213,14 +219,29 @@ export default function DeviceDetailScreen() {
         }
       }
 
+      let broadcastWarning: string | null = null
       if (bleDeviceUuid) {
         await bleService.setStoredBleDeviceUuid(bleDeviceUuid)
-        await bleService.startBroadcast(bleDeviceUuid)
+        try {
+          await bleService.startBroadcasting(bleDeviceUuid)
+          await disableBackgroundBleScanTask()
+        } catch (broadcastError) {
+          broadcastWarning =
+            broadcastError instanceof Error
+              ? broadcastError.message
+              : 'Unable to start BLE broadcasting in this build.'
+        }
+      } else {
+        broadcastWarning = 'BLE device UUID is not ready yet, so beacon broadcast was skipped.'
       }
 
       setLostModal(false)
       await refetch()
-      Alert.alert('Success', 'Device marked as lost and beacon mode activated.')
+      if (broadcastWarning) {
+        Alert.alert('Reported as lost', `Device was marked as lost. ${broadcastWarning}`)
+      } else {
+        Alert.alert('Success', 'Device marked as lost and beacon mode activated.')
+      }
     } catch (actionError) {
       Alert.alert('Error', actionError instanceof Error ? actionError.message : 'Unable to report lost.')
     } finally {
@@ -236,7 +257,8 @@ export default function DeviceDetailScreen() {
     setSubmitting(true)
     try {
       await markFound(device.id)
-      bleService.stopBroadcast()
+      await bleService.stopBroadcasting()
+      await enableBackgroundBleScanTask()
       await refetch()
       Alert.alert('Success', 'Device marked as found/recovered.')
     } catch (actionError) {
