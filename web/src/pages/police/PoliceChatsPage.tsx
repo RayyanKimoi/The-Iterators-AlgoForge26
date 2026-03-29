@@ -2,6 +2,8 @@ import { CSSProperties, useEffect, useState } from 'react'
 import { Colors } from '../../lib/colors'
 import { supabase } from '../../lib/supabase'
 import { Card } from '../../components/Card'
+import { Button } from '../../components/Button'
+import { analyzeChat, ChatAnalysis } from '../../services/aiService'
 
 type ChatRoomData = {
   id: string
@@ -34,6 +36,9 @@ export function PoliceChatsPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
   const [messagesLoading, setMessagesLoading] = useState(false)
+  const [analysis, setAnalysis] = useState<ChatAnalysis | null>(null)
+  const [analysisLoading, setAnalysisLoading] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
 
   useEffect(() => {
     loadRooms()
@@ -42,6 +47,8 @@ export function PoliceChatsPage() {
   useEffect(() => {
     if (selectedRoom) {
       loadMessages(selectedRoom)
+      setAnalysis(null)
+      setAnalysisError('')
     }
   }, [selectedRoom])
 
@@ -61,7 +68,12 @@ export function PoliceChatsPage() {
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setRooms(data as ChatRoomData[])
+      const transformedData = (data as any[]).map(room => ({
+        ...room,
+        devices: Array.isArray(room.devices) ? room.devices[0] : room.devices,
+        profiles: Array.isArray(room.profiles) ? room.profiles[0] : room.profiles,
+      }))
+      setRooms(transformedData as unknown as ChatRoomData[])
     } catch (error) {
       console.error('Error loading rooms:', error)
     } finally {
@@ -84,6 +96,20 @@ export function PoliceChatsPage() {
       console.error('Error loading messages:', error)
     } finally {
       setMessagesLoading(false)
+    }
+  }
+
+  const handleAnalyzeChat = async () => {
+    if (messages.length === 0) return
+    setAnalysisLoading(true)
+    setAnalysisError('')
+    try {
+      const result = await analyzeChat(messages)
+      setAnalysis(result)
+    } catch (error) {
+      setAnalysisError(error instanceof Error ? error.message : 'Analysis failed')
+    } finally {
+      setAnalysisLoading(false)
     }
   }
 
@@ -294,6 +320,82 @@ export function PoliceChatsPage() {
               </div>
             </div>
 
+            {/* AI Analysis Section */}
+            {(analysis || analysisLoading || analysisError) && (
+              <div style={{ padding: '24px', borderBottom: `1px solid ${Colors.outlineVariant}`, backgroundColor: `${Colors.surfaceContainerHigh}50` }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: Colors.primary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-icons">auto_awesome</span>
+                    AI Chat Analysis
+                  </h3>
+                  {analysis && (
+                    <span style={{
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      backgroundColor: analysis.riskLevel === 'High' ? Colors.errorContainer : analysis.riskLevel === 'Medium' ? `${Colors.secondary}30` : `${Colors.primary}30`,
+                      color: analysis.riskLevel === 'High' ? Colors.error : analysis.riskLevel === 'Medium' ? Colors.secondary : Colors.primary,
+                      border: `1px solid ${analysis.riskLevel === 'High' ? Colors.error : 'transparent'}`
+                    }}>
+                      RISK: {analysis.riskLevel.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+
+                {analysisLoading ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <span className="material-icons" style={{ fontSize: '32px', color: Colors.primary, animation: 'spin 1s linear infinite' }}>sync</span>
+                    <p style={{ marginTop: '8px', fontSize: '14px', color: Colors.onSurfaceVariant }}>Analyzing conversation with Groq AI...</p>
+                  </div>
+                ) : analysisError ? (
+                  <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: `${Colors.error}15`, color: Colors.error, fontSize: '14px', textAlign: 'center' }}>
+                    {analysisError}
+                  </div>
+                ) : analysis && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: Colors.onSurfaceVariant, marginBottom: '6px', textTransform: 'uppercase' }}>Summary</div>
+                      <p style={{ fontSize: '15px', color: Colors.onSurface, lineHeight: '1.5' }}>{analysis.summary}</p>
+                    </div>
+
+                    {analysis.redFlags.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: Colors.error, marginBottom: '6px', textTransform: 'uppercase' }}>Red Flags</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {analysis.redFlags.map((flag, idx) => (
+                            <span key={idx} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '4px', backgroundColor: `${Colors.error}10`, border: `1px solid ${Colors.error}30`, color: Colors.error }}>
+                              {flag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      {analysis.actionableInsights.location && (
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: Colors.onSurfaceVariant, marginBottom: '4px', textTransform: 'uppercase' }}>Location</div>
+                          <div style={{ fontSize: '14px', color: Colors.onSurface }}>{analysis.actionableInsights.location}</div>
+                        </div>
+                      )}
+                      {analysis.actionableInsights.meetingTime && (
+                        <div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, color: Colors.onSurfaceVariant, marginBottom: '4px', textTransform: 'uppercase' }}>Meeting Time</div>
+                          <div style={{ fontSize: '14px', color: Colors.onSurface }}>{analysis.actionableInsights.meetingTime}</div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: Colors.surfaceContainerHighest, borderLeft: `4px solid ${Colors.primary}` }}>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: Colors.primary, marginBottom: '4px', textTransform: 'uppercase' }}>Officer Recommendation</div>
+                      <p style={{ fontSize: '14px', color: Colors.onSurface }}>{analysis.recommendation}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={messagesContainerStyle}>
               {messagesLoading ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -327,13 +429,22 @@ export function PoliceChatsPage() {
               )}
             </div>
 
-            <div style={{ padding: '16px 24px', borderTop: `1px solid ${Colors.outlineVariant}`, backgroundColor: Colors.surfaceContainerLow }}>
-              <p style={{ fontSize: '13px', color: Colors.onSurfaceVariant, textAlign: 'center', fontStyle: 'italic' }}>
+            <div style={{ padding: '16px 24px', borderTop: `1px solid ${Colors.outlineVariant}`, backgroundColor: Colors.surfaceContainerLow, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontSize: '13px', color: Colors.onSurfaceVariant, fontStyle: 'italic' }}>
                 <span className="material-icons" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: '4px' }}>
                   visibility
                 </span>
                 Monitoring mode - Read-only access
               </p>
+              <Button 
+                onClick={handleAnalyzeChat} 
+                loading={analysisLoading} 
+                disabled={messages.length === 0} 
+                icon="auto_awesome"
+                size="small"
+              >
+                Analyze Conversation
+              </Button>
             </div>
           </>
         )}

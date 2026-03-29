@@ -53,7 +53,7 @@ export function ProfilePage() {
     setMessage({ type: '', text: '' })
 
     const { error } = await supabase
-      .from('users')
+      .from('profiles')
       .update({ full_name: fullName, phone_number: phone || null })
       .eq('id', user?.id)
 

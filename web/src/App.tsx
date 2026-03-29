@@ -86,7 +86,32 @@ function AppRoutes() {
   const { user, loading } = useAuth()
 
   if (loading) {
-    return null
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: Colors.background,
+          color: Colors.onSurface,
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <span
+            className="material-icons"
+            style={{
+              fontSize: '48px',
+              color: Colors.primary,
+              animation: 'spin 1s linear infinite',
+            }}
+          >
+            sync
+          </span>
+          <p style={{ marginTop: '16px' }}>Initializing...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

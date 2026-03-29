@@ -124,7 +124,10 @@ export function PoliceDashboardPage() {
   }
 
   const containerStyle: CSSProperties = {
-    padding: '32px',
+    paddingTop: '32px',
+    paddingBottom: '32px',
+    paddingLeft: '32px',
+    paddingRight: '32px',
     maxWidth: '1600px',
     margin: '0 auto',
   }
@@ -207,8 +210,8 @@ export function PoliceDashboardPage() {
         <Card 
           style={statCardStyle}
           onClick={() => navigate('/police/devices')}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.error}40` }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.error}40` }}
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ 
@@ -232,8 +235,8 @@ export function PoliceDashboardPage() {
         <Card 
           style={statCardStyle}
           onClick={() => navigate('/police/reports')}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.primary}40` }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.primary}40` }}
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ 
@@ -257,8 +260,8 @@ export function PoliceDashboardPage() {
         <Card 
           style={statCardStyle}
           onClick={() => navigate('/police/chats')}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.tertiary}40` }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.tertiary}40` }}
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ 
@@ -281,8 +284,8 @@ export function PoliceDashboardPage() {
 
         <Card 
           style={statCardStyle}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.secondary}40` }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.secondary}40` }}
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ 
@@ -305,8 +308,8 @@ export function PoliceDashboardPage() {
 
         <Card 
           style={statCardStyle}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.accent}40` }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.accent}40` }}
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ 
@@ -329,8 +332,8 @@ export function PoliceDashboardPage() {
 
         <Card 
           style={statCardStyle}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.primary}40` }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.primary}40` }}
+          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ 

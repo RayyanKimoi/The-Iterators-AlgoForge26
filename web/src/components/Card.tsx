@@ -1,7 +1,7 @@
-import { CSSProperties, ReactNode } from 'react'
+import { CSSProperties, ReactNode, HTMLAttributes } from 'react'
 import { Colors } from '../lib/colors'
 
-type CardProps = {
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
   title?: string
   subtitle?: string
@@ -21,6 +21,9 @@ export function Card({
   padding = '24px',
   variant = 'default',
   hoverable = true,
+  onMouseEnter,
+  onMouseLeave,
+  ...rest
 }: CardProps) {
   const getVariantStyles = (): CSSProperties => {
     switch (variant) {
@@ -75,6 +78,7 @@ export function Card({
           e.currentTarget.style.transform = 'translateY(-3px)'
           e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
         }
+        onMouseEnter?.(e)
       }}
       onMouseLeave={(e) => {
         if (onClick && hoverable) {
@@ -82,7 +86,9 @@ export function Card({
           const variantStyles = getVariantStyles()
           e.currentTarget.style.boxShadow = variantStyles.boxShadow || 'none'
         }
+        onMouseLeave?.(e)
       }}
+      {...rest}
     >
       {title && <h3 style={titleStyle}>{title}</h3>}
       {subtitle && <p style={subtitleStyle}>{subtitle}</p>}

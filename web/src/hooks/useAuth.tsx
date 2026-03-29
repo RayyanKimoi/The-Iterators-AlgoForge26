@@ -31,17 +31,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
 
-    if (error) {
-      console.error('Error fetching profile:', error)
+      if (error) {
+        console.error('AuthProvider: Error fetching profile:', error)
+        return null
+      }
+      return data as Profile
+    } catch (err) {
+      console.error('AuthProvider: Unexpected error fetching profile:', err)
       return null
     }
-    return data as Profile
   }
 
   const refreshProfile = async () => {
@@ -52,37 +57,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    console.log('AuthProvider: Initializing...')
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('AuthProvider: Session loaded', session ? 'User logged in' : 'No user')
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile)
+    let mounted = true
+    let initialized = false
+
+    const init = async () => {
+      if (initialized) return
+      initialized = true
+      
+      console.log('AuthProvider: Initializing...')
+      
+      // Get initial session quickly
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        if (mounted) {
+          setSession(initialSession)
+          setUser(initialSession?.user ?? null)
+          if (initialSession?.user) {
+            const profileData = await fetchProfile(initialSession.user.id)
+            if (mounted) setProfile(profileData)
+          }
+          setLoading(false)
+        }
+      } catch (error) {
+        console.error('AuthProvider: Error getting initial session', error)
+        if (mounted) setLoading(false)
       }
-      setLoading(false)
-    }).catch((error) => {
-      console.error('AuthProvider: Error getting session', error)
-      setLoading(false)
-    })
+    }
+
+    init()
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          const profileData = await fetchProfile(session.user.id)
-          setProfile(profileData)
-        } else {
-          setProfile(null)
+      async (event, session) => {
+        console.log(`AuthProvider: Auth event: ${event}`)
+        if (mounted) {
+          setSession(session)
+          setUser(session?.user ?? null)
+          if (session?.user) {
+            const profileData = await fetchProfile(session.user.id)
+            if (mounted) setProfile(profileData)
+          } else {
+            setProfile(null)
+          }
+          setLoading(false)
         }
-        setLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {
@@ -91,22 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
       },
     })
-
-    if (!error && data.user) {
-      // Create user profile
-      await supabase.from('users').insert({
-        id: data.user.id,
-        full_name: fullName,
-        role: 'user',
-      })
-    }
 
     return { error: error as Error | null }
   }
