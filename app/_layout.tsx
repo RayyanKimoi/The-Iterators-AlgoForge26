@@ -26,19 +26,24 @@ function AuthGate() {
 
     let cancelled = false
     const bootstrapBleBackground = async () => {
-      await bleService.requestScanPermissions()
-      const broadcasting = await bleService.isBroadcastingMode()
-      if (cancelled) {
-        return
-      }
+      try {
+        await bleService.requestScanPermissions()
+        const broadcasting = await bleService.isBroadcastingMode()
+        if (cancelled) {
+          return
+        }
 
-      if (broadcasting) {
-        await bleService.restoreBroadcastingFromStorage().catch(() => {
-          // Ignore restore failures here; manual restart can still occur from registration flow.
-        })
-        await disableBackgroundBleScanTask()
-      } else {
-        await enableBackgroundBleScanTask()
+        if (broadcasting) {
+          await bleService.restoreBroadcastingFromStorage().catch(() => {
+            // Ignore restore failures here; manual restart can still occur from registration flow.
+          })
+          await disableBackgroundBleScanTask()
+        } else {
+          await enableBackgroundBleScanTask()
+        }
+      } catch (error) {
+        // Log error but allow app to render - background service failures should not crash the UI
+        console.error('[SPORS] BLE bootstrap failed (non-fatal):', error)
       }
     }
 

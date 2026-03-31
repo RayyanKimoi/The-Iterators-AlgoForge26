@@ -277,29 +277,34 @@ class BLEService {
       return
     }
 
-    if (this.foregroundService.createNotificationChannel) {
+    try {
+      if (this.foregroundService.createNotificationChannel) {
+        await Promise.resolve(
+          this.foregroundService.createNotificationChannel({
+            id: 'spors-ble-beacon',
+            name: 'SPORS BLE Beacon',
+            description: 'Keeps SPORS device beacon active in background',
+            importance: 2,
+            enableVibration: false,
+          })
+        )
+      }
+
       await Promise.resolve(
-        this.foregroundService.createNotificationChannel({
-          id: 'spors-ble-beacon',
-          name: 'SPORS BLE Beacon',
-          description: 'Keeps SPORS device beacon active in background',
-          importance: 2,
-          enableVibration: false,
+        this.foregroundService.startService({
+          channelId: 'spors-ble-beacon',
+          id: 5001,
+          title: 'SPORS protection active',
+          text: 'Broadcasting your encrypted device beacon in background',
+          icon: 'ic_launcher',
+          button: 'Open SPORS',
+          priority: -1,
         })
       )
+    } catch (error) {
+      console.error('[SPORS] Foreground service start failed:', error)
+      // Don't rethrow - allow app to continue without foreground service
     }
-
-    await Promise.resolve(
-      this.foregroundService.startService({
-        channelId: 'spors-ble-beacon',
-        id: 5001,
-        title: 'SPORS protection active',
-        text: 'Broadcasting your encrypted device beacon in background',
-        icon: 'ic_launcher',
-        button: 'Open SPORS',
-        priority: -1,
-      })
-    )
   }
 
   private async stopForegroundBeaconService() {

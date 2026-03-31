@@ -1,6 +1,25 @@
 import type { ExpoConfig } from 'expo/config'
+import { withAndroidManifest, ConfigPlugin, AndroidConfig } from '@expo/config-plugins'
 
 const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
+
+// Custom plugin to inject foregroundServiceType for Android 14+ compatibility
+const withForegroundServiceType: ConfigPlugin = (config) => {
+  return withAndroidManifest(config, async (modConfig) => {
+    const manifest = modConfig.modResults
+    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest)
+    
+    const services = application.service || []
+    for (const service of services) {
+      const serviceName = service.$?.['android:name']
+      if (serviceName === 'com.voximplant.foregroundservice.VIForegroundService') {
+        service.$['android:foregroundServiceType'] = 'connectedDevice|location'
+      }
+    }
+    
+    return modConfig
+  })
+}
 
 const config: ExpoConfig = {
   name: 'SPORS',
@@ -99,6 +118,7 @@ const config: ExpoConfig = {
         googleMapsApiKey: googleMapsApiKey,
       },
     ],
+    withForegroundServiceType,
   ],
   experiments: {
     typedRoutes: true,
@@ -106,7 +126,7 @@ const config: ExpoConfig = {
   extra: {
     router: {},
     eas: {
-      projectId: 'f31caf0c-76e5-4d16-878a-7b0df14fde68',
+      projectId: 'd1f8584e-f8d7-4f50-9e68-b84fcf14a96c',
     },
   },
 }
