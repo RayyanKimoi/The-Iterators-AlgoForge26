@@ -129,10 +129,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
-    setSession(null)
+    try {
+      console.log('AuthContext: Signing out...')
+      await supabase.auth.signOut({ scope: 'global' })
+    } catch (error) {
+      console.error('AuthContext: Error during signOut:', error)
+    } finally {
+      setUser(null)
+      setProfile(null)
+      setSession(null)
+      
+      // Clear all possible related storage keys
+      const keysToClear = [
+        'supabase.auth.token',
+        'sb-' + import.meta.env.VITE_SUPABASE_URL + '-auth-token'
+      ]
+      
+      // Also look for any key starting with sb- and ending with -auth-token
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          keysToClear.push(key)
+        }
+      }
+
+      keysToClear.forEach(key => {
+        localStorage.removeItem(key)
+        sessionStorage.removeItem(key)
+      })
+
+      console.log('AuthContext: Sign out complete, state cleared.')
+    }
   }
 
   return (

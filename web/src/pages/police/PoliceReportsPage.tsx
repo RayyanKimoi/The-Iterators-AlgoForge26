@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useState } from 'react'
-import { Colors } from '../../lib/colors'
+import { useTheme } from '../../hooks/ThemeContext'
 import { supabase } from '../../lib/supabase'
 import { Card } from '../../components/Card'
 import { Button } from '../../components/Button'
@@ -30,6 +30,7 @@ type LostReport = {
 }
 
 export function PoliceReportsPage() {
+  const { theme } = useTheme()
   const [reports, setReports] = useState<LostReport[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'active' | 'resolved' | 'all'>('active')
@@ -116,7 +117,7 @@ export function PoliceReportsPage() {
   const titleStyle: CSSProperties = {
     fontSize: '32px',
     fontWeight: 700,
-    color: Colors.onSurface,
+    color: theme.text,
     marginBottom: '16px',
     display: 'flex',
     alignItems: 'center',
@@ -131,10 +132,10 @@ export function PoliceReportsPage() {
 
   const filterButtonStyle = (isActive: boolean): CSSProperties => ({
     padding: '10px 20px',
-    borderRadius: '10px',
-    backgroundColor: isActive ? Colors.primary : Colors.surfaceContainerHigh,
-    color: isActive ? Colors.onPrimary : Colors.onSurfaceVariant,
-    border: `1px solid ${isActive ? Colors.primary : Colors.outlineVariant}`,
+    borderRadius: '0px',
+    backgroundColor: isActive ? theme.text : theme.bgSurfaceDim,
+    color: isActive ? theme.textInverse : theme.textSecondary,
+    border: `1px solid ${isActive ? theme.text : theme.border}`,
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 600,
@@ -157,8 +158,8 @@ export function PoliceReportsPage() {
     padding: '24px',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    border: `2px solid ${isSelected ? Colors.primary : Colors.outlineVariant}`,
-    backgroundColor: isSelected ? `${Colors.primary}08` : Colors.surfaceContainer,
+    border: `2px solid ${isSelected ? theme.text : theme.border}`,
+    backgroundColor: isSelected ? `${theme.text}08` : theme.bgSurface,
   })
 
   const detailsPanelStyle: CSSProperties = {
@@ -172,10 +173,10 @@ export function PoliceReportsPage() {
   if (loading) {
     return (
       <div style={{ ...containerStyle, textAlign: 'center', paddingTop: '120px' }}>
-        <span className="material-icons" style={{ fontSize: '48px', color: Colors.primary, animation: 'spin 1s linear infinite' }}>
+        <span className="material-icons" style={{ fontSize: '48px', color: theme.text, animation: 'spin 1s linear infinite' }}>
           sync
         </span>
-        <p style={{ marginTop: '16px', color: Colors.onSurfaceVariant }}>Loading reports...</p>
+        <p style={{ marginTop: '16px', color: theme.textSecondary }}>Loading reports...</p>
       </div>
     )
   }
@@ -184,12 +185,12 @@ export function PoliceReportsPage() {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h1 style={titleStyle}>
-          <span className="material-icons" style={{ fontSize: '40px', color: Colors.primary }}>
+          <span className="material-icons" style={{ fontSize: '40px', color: theme.text }}>
             description
           </span>
           Lost Device Reports
         </h1>
-        <p style={{ fontSize: '15px', color: Colors.onSurfaceVariant }}>
+        <p style={{ fontSize: '14px', color: theme.textSecondary }}>
           {reports.length} report{reports.length !== 1 ? 's' : ''} filed
         </p>
       </div>
@@ -219,11 +220,11 @@ export function PoliceReportsPage() {
         <div style={reportsListStyle}>
           {reports.length === 0 ? (
             <Card style={{ padding: '60px', textAlign: 'center' }}>
-              <span className="material-icons" style={{ fontSize: '64px', color: Colors.outline, marginBottom: '16px' }}>
+              <span className="material-icons" style={{ fontSize: '64px', color: theme.textTertiary, marginBottom: '16px' }}>
                 assignment
               </span>
-              <h2 style={{ color: Colors.onSurface, marginBottom: '8px' }}>No reports found</h2>
-              <p style={{ color: Colors.onSurfaceVariant }}>
+              <h2 style={{ color: theme.text, marginBottom: '8px' }}>No reports found</h2>
+              <p style={{ color: theme.textSecondary }}>
                 {filter === 'active' ? 'No active reports at this time' : filter === 'resolved' ? 'No resolved reports' : 'No reports filed'}
               </p>
             </Card>
@@ -236,17 +237,17 @@ export function PoliceReportsPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
                   <div>
-                    <h3 style={{ fontSize: '20px', fontWeight: 600, color: Colors.onSurface, marginBottom: '6px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: 600, color: theme.text, marginBottom: '6px' }}>
                       {report.devices?.make} {report.devices?.model}
                     </h3>
-                    <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, marginBottom: '4px' }}>
+                    <div style={{ fontSize: '14px', color: theme.textSecondary, marginBottom: '4px' }}>
                       <span className="material-icons" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '6px' }}>
                         person
                       </span>
                       {report.profiles?.full_name || 'Unknown Owner'}
                     </div>
                     {report.profiles?.phone_number && (
-                      <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant }}>
+                      <div style={{ fontSize: '14px', color: theme.textSecondary }}>
                         <span className="material-icons" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '6px' }}>
                           phone
                         </span>
@@ -257,9 +258,9 @@ export function PoliceReportsPage() {
                   <span
                     style={{
                       padding: '6px 14px',
-                      borderRadius: '8px',
-                      backgroundColor: report.is_active ? `${Colors.error}20` : `${Colors.secondary}20`,
-                      color: report.is_active ? Colors.error : Colors.secondary,
+                      borderRadius: '0px',
+                      backgroundColor: report.is_active ? `${theme.error}20` : `${theme.text}20`,
+                      color: report.is_active ? theme.error : theme.text,
                       fontSize: '12px',
                       fontWeight: 700,
                       textTransform: 'uppercase',
@@ -272,14 +273,14 @@ export function PoliceReportsPage() {
                 {report.police_complaint_number && (
                   <div style={{
                     padding: '12px 16px',
-                    backgroundColor: Colors.surfaceContainerHigh,
-                    borderRadius: '10px',
+                    backgroundColor: theme.bgSurfaceDim,
+                    borderRadius: '0px',
                     marginBottom: '12px',
                   }}>
-                    <div style={{ fontSize: '11px', color: Colors.outline, marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase' }}>
+                    <div style={{ fontSize: '11px', color: theme.textTertiary, marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase' }}>
                       Complaint Number
                     </div>
-                    <div style={{ fontSize: '16px', color: Colors.primary, fontWeight: 700, fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '16px', color: theme.text, fontWeight: 700, fontFamily: 'monospace' }}>
                       {report.police_complaint_number}
                     </div>
                   </div>
@@ -287,15 +288,15 @@ export function PoliceReportsPage() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <div style={{ fontSize: '13px' }}>
-                    <div style={{ color: Colors.outline, marginBottom: '4px' }}>IMEI</div>
-                    <div style={{ color: Colors.onSurface, fontWeight: 500, fontFamily: 'monospace' }}>
+                    <div style={{ color: theme.textTertiary, marginBottom: '4px' }}>IMEI</div>
+                    <div style={{ color: theme.text, fontWeight: 500, fontFamily: 'monospace' }}>
                       {report.devices?.imei_primary || 'N/A'}
                     </div>
                   </div>
                   {report.reward_amount && (
                     <div style={{ fontSize: '13px' }}>
-                      <div style={{ color: Colors.outline, marginBottom: '4px' }}>Reward</div>
-                      <div style={{ color: Colors.secondary, fontWeight: 600 }}>
+                      <div style={{ color: theme.textTertiary, marginBottom: '4px' }}>Reward</div>
+                      <div style={{ color: theme.text, fontWeight: 600 }}>
                         ₹{report.reward_amount.toLocaleString()}
                       </div>
                     </div>
@@ -305,7 +306,7 @@ export function PoliceReportsPage() {
                 {report.incident_description && (
                   <div style={{ 
                     fontSize: '14px', 
-                    color: Colors.onSurfaceVariant, 
+                    color: theme.textSecondary, 
                     marginBottom: '12px',
                     lineHeight: '1.5',
                     display: '-webkit-box',
@@ -317,7 +318,7 @@ export function PoliceReportsPage() {
                   </div>
                 )}
 
-                <div style={{ fontSize: '12px', color: Colors.outline, paddingTop: '12px', borderTop: `1px solid ${Colors.outlineVariant}` }}>
+                <div style={{ fontSize: '12px', color: theme.textTertiary, paddingTop: '12px', borderTop: `1px solid ${theme.border}` }}>
                   Reported: {new Date(report.reported_at).toLocaleString()}
                   {report.resolved_at && (
                     <span> • Resolved: {new Date(report.resolved_at).toLocaleString()}</span>
@@ -332,7 +333,7 @@ export function PoliceReportsPage() {
           <Card style={detailsPanelStyle}>
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: 700, color: Colors.onSurface }}>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: theme.text }}>
                   Report Details
                 </h2>
                 <button
@@ -340,7 +341,7 @@ export function PoliceReportsPage() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: Colors.onSurfaceVariant,
+                    color: theme.textSecondary,
                     cursor: 'pointer',
                     padding: '4px',
                   }}
@@ -351,45 +352,45 @@ export function PoliceReportsPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                  <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                     Device Information
                   </div>
-                  <div style={{ fontSize: '18px', fontWeight: 600, color: Colors.onSurface, marginBottom: '8px' }}>
+                  <div style={{ fontSize: '18px', fontWeight: 600, color: theme.text, marginBottom: '8px' }}>
                     {selectedReport.devices?.make} {selectedReport.devices?.model}
                   </div>
-                  <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, marginBottom: '4px' }}>
+                  <div style={{ fontSize: '14px', color: theme.textSecondary, marginBottom: '4px' }}>
                     IMEI: <span style={{ fontFamily: 'monospace', fontWeight: 500 }}>{selectedReport.devices?.imei_primary}</span>
                   </div>
-                  <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant }}>
+                  <div style={{ fontSize: '14px', color: theme.textSecondary }}>
                     Status: <span style={{ 
                       fontWeight: 600, 
-                      color: selectedReport.devices?.status === 'stolen' ? Colors.error : Colors.tertiary 
+                      color: selectedReport.devices?.status === 'stolen' ? theme.error : theme.textSecondary 
                     }}>
                       {selectedReport.devices?.status.toUpperCase()}
                     </span>
                   </div>
                 </div>
 
-                <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                <div style={{ height: '1px', backgroundColor: theme.border }} />
 
                 <div>
-                  <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                     Owner Information
                   </div>
-                  <div style={{ fontSize: '15px', color: Colors.onSurface, marginBottom: '6px' }}>
-                    <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: Colors.primary }}>
+                  <div style={{ fontSize: '14px', color: theme.text, marginBottom: '6px' }}>
+                    <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: theme.text }}>
                       person
                     </span>
                     {selectedReport.profiles?.full_name || 'Unknown'}
                   </div>
                   {selectedReport.profiles?.phone_number && (
-                    <div style={{ fontSize: '15px', color: Colors.onSurface, marginBottom: '12px' }}>
-                      <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: Colors.primary }}>
+                    <div style={{ fontSize: '14px', color: theme.text, marginBottom: '12px' }}>
+                      <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: theme.text }}>
                         phone
                       </span>
                       <a 
                         href={`tel:${selectedReport.profiles.phone_number}`}
-                        style={{ color: Colors.primary, textDecoration: 'none', fontWeight: 500 }}
+                        style={{ color: theme.text, textDecoration: 'none', fontWeight: 500 }}
                       >
                         {selectedReport.profiles.phone_number}
                       </a>
@@ -397,60 +398,60 @@ export function PoliceReportsPage() {
                   )}
                 </div>
 
-                <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                <div style={{ height: '1px', backgroundColor: theme.border }} />
 
                 {selectedReport.police_complaint_number && (
                   <>
                     <div>
-                      <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                         Police Complaint
                       </div>
                       <div style={{ 
                         padding: '16px', 
-                        backgroundColor: Colors.surfaceContainerHigh, 
-                        borderRadius: '12px',
-                        border: `2px solid ${Colors.primary}40`,
+                        backgroundColor: theme.bgSurfaceDim, 
+                        borderRadius: '0px',
+                        border: `2px solid ${theme.text}40`,
                       }}>
-                        <div style={{ fontSize: '11px', color: Colors.outline, marginBottom: '4px', fontWeight: 600 }}>
+                        <div style={{ fontSize: '11px', color: theme.textTertiary, marginBottom: '4px', fontWeight: 600 }}>
                           COMPLAINT NUMBER
                         </div>
-                        <div style={{ fontSize: '20px', color: Colors.primary, fontWeight: 700, fontFamily: 'monospace' }}>
+                        <div style={{ fontSize: '20px', color: theme.text, fontWeight: 700, fontFamily: 'monospace' }}>
                           {selectedReport.police_complaint_number}
                         </div>
                       </div>
                     </div>
-                    <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                    <div style={{ height: '1px', backgroundColor: theme.border }} />
                   </>
                 )}
 
                 {selectedReport.incident_description && (
                   <>
                     <div>
-                      <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                         Incident Description
                       </div>
                       <div style={{ 
                         fontSize: '14px', 
-                        color: Colors.onSurface, 
+                        color: theme.text, 
                         lineHeight: '1.6',
                         padding: '14px',
-                        backgroundColor: Colors.surfaceContainerHigh,
-                        borderRadius: '10px',
+                        backgroundColor: theme.bgSurfaceDim,
+                        borderRadius: '0px',
                       }}>
                         {selectedReport.incident_description}
                       </div>
                     </div>
-                    <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                    <div style={{ height: '1px', backgroundColor: theme.border }} />
                   </>
                 )}
 
                 {selectedReport.last_known_address && (
                   <>
                     <div>
-                      <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                         Last Known Location
                       </div>
-                      <div style={{ fontSize: '14px', color: Colors.onSurface, lineHeight: '1.5' }}>
+                      <div style={{ fontSize: '14px', color: theme.text, lineHeight: '1.5' }}>
                         {selectedReport.last_known_address}
                       </div>
                       {(selectedReport.last_known_lat && selectedReport.last_known_lng) && (
@@ -462,10 +463,10 @@ export function PoliceReportsPage() {
                             width: '100%',
                             marginTop: '12px',
                             padding: '12px',
-                            backgroundColor: Colors.secondary,
-                            color: Colors.onPrimary,
+                            backgroundColor: theme.text,
+                            color: theme.textInverse,
                             border: 'none',
-                            borderRadius: '10px',
+                            borderRadius: '0px',
                             cursor: 'pointer',
                             fontSize: '14px',
                             fontWeight: 600,
@@ -480,33 +481,33 @@ export function PoliceReportsPage() {
                         </button>
                       )}
                     </div>
-                    <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                    <div style={{ height: '1px', backgroundColor: theme.border }} />
                   </>
                 )}
 
                 {selectedReport.reward_amount && (
                   <>
                     <div>
-                      <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                         Reward Offered
                       </div>
-                      <div style={{ fontSize: '28px', color: Colors.secondary, fontWeight: 700 }}>
+                      <div style={{ fontSize: '28px', color: theme.text, fontWeight: 700 }}>
                         ₹{selectedReport.reward_amount.toLocaleString()}
                       </div>
                     </div>
-                    <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                    <div style={{ height: '1px', backgroundColor: theme.border }} />
                   </>
                 )}
 
                 <div>
-                  <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                     Timeline
                   </div>
-                  <div style={{ fontSize: '14px', color: Colors.onSurface, marginBottom: '6px' }}>
+                  <div style={{ fontSize: '14px', color: theme.text, marginBottom: '6px' }}>
                     <span style={{ fontWeight: 600 }}>Reported:</span> {new Date(selectedReport.reported_at).toLocaleString()}
                   </div>
                   {selectedReport.resolved_at && (
-                    <div style={{ fontSize: '14px', color: Colors.secondary, fontWeight: 500 }}>
+                    <div style={{ fontSize: '14px', color: theme.text, fontWeight: 500 }}>
                       <span style={{ fontWeight: 600 }}>Resolved:</span> {new Date(selectedReport.resolved_at).toLocaleString()}
                     </div>
                   )}
@@ -514,11 +515,11 @@ export function PoliceReportsPage() {
 
                 {selectedReport.is_active && (
                   <>
-                    <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                    <div style={{ height: '1px', backgroundColor: theme.border }} />
                     <Button
                       fullWidth
                       onClick={() => markAsResolved(selectedReport.id)}
-                      style={{ backgroundColor: Colors.secondary }}
+                      style={{ backgroundColor: theme.text }}
                     >
                       <span className="material-icons" style={{ fontSize: '18px', marginRight: '8px' }}>
                         check_circle

@@ -1,10 +1,12 @@
 import { CSSProperties } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { ThemeProvider, useTheme } from './hooks/ThemeContext'
 import { globalStyles } from './styles/global'
-import { Colors } from './lib/colors'
 import { Sidebar } from './components/Sidebar'
 import { PoliceSidebar } from './components/police/PoliceSidebar'
+import { CustomCursor } from './components/landing/CustomCursor'
+import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
 import { DevicesPage } from './pages/DevicesPage'
@@ -25,6 +27,7 @@ import { PoliceAnalyticsPage } from './pages/police/PoliceAnalyticsPage'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
+  const { theme } = useTheme()
 
   if (loading) {
     return (
@@ -34,22 +37,29 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: Colors.background,
-          color: Colors.onSurface,
+          backgroundColor: theme.bg,
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <span
-            className="material-icons"
-            style={{
-              fontSize: '48px',
-              color: Colors.primary,
-              animation: 'spin 1s linear infinite',
-            }}
-          >
-            sync
-          </span>
-          <p style={{ marginTop: '16px' }}>Loading...</p>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            border: `2px solid ${theme.border}`,
+            borderTopColor: theme.text,
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+            margin: '0 auto',
+          }} />
+          <p style={{
+            marginTop: '16px',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '11px',
+            letterSpacing: '0.2em',
+            color: theme.textTertiary,
+            textTransform: 'uppercase',
+          }}>
+            Loading...
+          </p>
         </div>
       </div>
     )
@@ -63,19 +73,25 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppLayout({ children, isPolice }: { children: React.ReactNode; isPolice?: boolean }) {
+  const { theme, isDark } = useTheme()
+
   const layoutStyle: CSSProperties = {
     display: 'flex',
-    minHeight: '100vh',
+    height: '100vh',
+    overflow: 'hidden',
   }
 
   const mainStyle: CSSProperties = {
     flex: 1,
-    overflow: 'auto',
-    backgroundColor: Colors.background,
+    overflowY: 'auto',
+    height: '100vh',
+    backgroundColor: theme.bg,
+    transition: 'background-color 0.3s ease',
   }
 
   return (
-    <div style={layoutStyle}>
+    <div className={`app-layout custom-cursor-area ${isDark ? 'dark' : ''}`} style={layoutStyle}>
+      <CustomCursor />
       {isPolice ? <PoliceSidebar /> : <Sidebar />}
       <main style={mainStyle}>{children}</main>
     </div>
@@ -84,6 +100,7 @@ function AppLayout({ children, isPolice }: { children: React.ReactNode; isPolice
 
 function AppRoutes() {
   const { user, loading } = useAuth()
+  const { theme } = useTheme()
 
   if (loading) {
     return (
@@ -93,22 +110,29 @@ function AppRoutes() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: Colors.background,
-          color: Colors.onSurface,
+          backgroundColor: theme.bg,
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <span
-            className="material-icons"
-            style={{
-              fontSize: '48px',
-              color: Colors.primary,
-              animation: 'spin 1s linear infinite',
-            }}
-          >
-            sync
-          </span>
-          <p style={{ marginTop: '16px' }}>Initializing...</p>
+          <div style={{
+            width: '24px',
+            height: '24px',
+            border: `2px solid ${theme.border}`,
+            borderTopColor: theme.text,
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+            margin: '0 auto',
+          }} />
+          <p style={{
+            marginTop: '16px',
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '11px',
+            letterSpacing: '0.2em',
+            color: theme.textTertiary,
+            textTransform: 'uppercase',
+          }}>
+            Initializing...
+          </p>
         </div>
       </div>
     )
@@ -116,172 +140,30 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
+      
       <Route
         path="/login"
-        element={user ? <Navigate to="/" replace /> : <LoginPage />}
+        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
       />
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <HomePage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/devices"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <DevicesPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/add-device"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <AddDevicePage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/alerts"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <AlertsPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <ProfilePage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/chat"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <ChatListPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/chat/:roomId"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <ChatRoomPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/about"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <AboutPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/privacy-policy"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <PrivacyPolicyPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/report-bug"
-        element={
-          <PrivateRoute>
-            <AppLayout>
-              <ReportBugPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
+      <Route path="/dashboard" element={<PrivateRoute><AppLayout><HomePage /></AppLayout></PrivateRoute>} />
+      <Route path="/devices" element={<PrivateRoute><AppLayout><DevicesPage /></AppLayout></PrivateRoute>} />
+      <Route path="/add-device" element={<PrivateRoute><AppLayout><AddDevicePage /></AppLayout></PrivateRoute>} />
+      <Route path="/alerts" element={<PrivateRoute><AppLayout><AlertsPage /></AppLayout></PrivateRoute>} />
+      <Route path="/profile" element={<PrivateRoute><AppLayout><ProfilePage /></AppLayout></PrivateRoute>} />
+      <Route path="/chat" element={<PrivateRoute><AppLayout><ChatListPage /></AppLayout></PrivateRoute>} />
+      <Route path="/chat/:roomId" element={<PrivateRoute><AppLayout><ChatRoomPage /></AppLayout></PrivateRoute>} />
+      <Route path="/about" element={<PrivateRoute><AppLayout><AboutPage /></AppLayout></PrivateRoute>} />
+      <Route path="/privacy-policy" element={<PrivateRoute><AppLayout><PrivacyPolicyPage /></AppLayout></PrivateRoute>} />
+      <Route path="/report-bug" element={<PrivateRoute><AppLayout><ReportBugPage /></AppLayout></PrivateRoute>} />
       
       {/* Police Routes */}
-      <Route
-        path="/police"
-        element={
-          <PrivateRoute>
-            <AppLayout isPolice>
-              <PoliceDashboardPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/police/chats"
-        element={
-          <PrivateRoute>
-            <AppLayout isPolice>
-              <PoliceChatsPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/police/devices"
-        element={
-          <PrivateRoute>
-            <AppLayout isPolice>
-              <PoliceDevicesPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/police/reports"
-        element={
-          <PrivateRoute>
-            <AppLayout isPolice>
-              <PoliceReportsPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/police/search"
-        element={
-          <PrivateRoute>
-            <AppLayout isPolice>
-              <PoliceSearchPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/police/analytics"
-        element={
-          <PrivateRoute>
-            <AppLayout isPolice>
-              <PoliceAnalyticsPage />
-            </AppLayout>
-          </PrivateRoute>
-        }
-      />
+      <Route path="/police" element={<PrivateRoute><AppLayout isPolice><PoliceDashboardPage /></AppLayout></PrivateRoute>} />
+      <Route path="/police/chats" element={<PrivateRoute><AppLayout isPolice><PoliceChatsPage /></AppLayout></PrivateRoute>} />
+      <Route path="/police/devices" element={<PrivateRoute><AppLayout isPolice><PoliceDevicesPage /></AppLayout></PrivateRoute>} />
+      <Route path="/police/reports" element={<PrivateRoute><AppLayout isPolice><PoliceReportsPage /></AppLayout></PrivateRoute>} />
+      <Route path="/police/search" element={<PrivateRoute><AppLayout isPolice><PoliceSearchPage /></AppLayout></PrivateRoute>} />
+      <Route path="/police/analytics" element={<PrivateRoute><AppLayout isPolice><PoliceAnalyticsPage /></AppLayout></PrivateRoute>} />
       
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -300,7 +182,9 @@ export default function App() {
       `}</style>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
-          <AppRoutes />
+          <ThemeProvider>
+            <AppRoutes />
+          </ThemeProvider>
         </AuthProvider>
       </BrowserRouter>
     </>

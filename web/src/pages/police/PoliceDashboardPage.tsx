@@ -1,6 +1,6 @@
 import { CSSProperties, useEffect, useState } from 'react'
-import { Colors } from '../../lib/colors'
 import { supabase } from '../../lib/supabase'
+import { useTheme } from '../../hooks/ThemeContext'
 import { Card } from '../../components/Card'
 import { useNavigate } from 'react-router-dom'
 
@@ -25,32 +25,19 @@ type RecentActivity = {
 
 export function PoliceDashboardPage() {
   const navigate = useNavigate()
+  const { theme } = useTheme()
   const [stats, setStats] = useState<DashboardStats>({
-    totalLostDevices: 0,
-    activeReports: 0,
-    totalChats: 0,
-    devicesRecovered: 0,
-    recentAlerts: 0,
-    totalUsers: 0,
+    totalLostDevices: 0, activeReports: 0, totalChats: 0,
+    devicesRecovered: 0, recentAlerts: 0, totalUsers: 0,
   })
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadDashboardData()
-  }, [])
+  useEffect(() => { loadDashboardData() }, [])
 
   const loadDashboardData = async () => {
     try {
-      // Get all stats in parallel
-      const [
-        lostDevicesRes,
-        activeReportsRes,
-        chatsRes,
-        recoveredRes,
-        alertsRes,
-        usersRes,
-      ] = await Promise.all([
+      const [lostDevicesRes, activeReportsRes, chatsRes, recoveredRes, alertsRes, usersRes] = await Promise.all([
         supabase.from('devices').select('*', { count: 'exact', head: true }).in('status', ['lost', 'stolen']),
         supabase.from('lost_reports').select('*', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('chat_rooms').select('*', { count: 'exact', head: true }).eq('is_active', true),
@@ -68,7 +55,6 @@ export function PoliceDashboardPage() {
         totalUsers: usersRes.count || 0,
       })
 
-      // Load recent activity
       await loadRecentActivity()
     } catch (error) {
       console.error('Error loading dashboard:', error)
@@ -80,7 +66,6 @@ export function PoliceDashboardPage() {
   const loadRecentActivity = async () => {
     const activities: RecentActivity[] = []
 
-    // Recent lost reports
     const { data: reports } = await supabase
       .from('lost_reports')
       .select('id, reported_at, devices(make, model)')
@@ -89,17 +74,12 @@ export function PoliceDashboardPage() {
 
     reports?.forEach((report: any) => {
       activities.push({
-        id: report.id,
-        type: 'report',
-        title: 'New Lost Report',
+        id: report.id, type: 'report', title: 'New Lost Report',
         description: `${report.devices?.make} ${report.devices?.model}`,
-        timestamp: report.reported_at,
-        icon: 'report',
-        color: Colors.error,
+        timestamp: report.reported_at, icon: 'report', color: theme.error,
       })
     })
 
-    // Recent beacon detections
     const { data: beacons } = await supabase
       .from('beacon_logs')
       .select('id, reported_at, device_id, devices(make, model)')
@@ -108,293 +88,83 @@ export function PoliceDashboardPage() {
 
     beacons?.forEach((beacon: any) => {
       activities.push({
-        id: beacon.id,
-        type: 'beacon',
-        title: 'Device Detected',
+        id: beacon.id, type: 'beacon', title: 'Device Detected',
         description: `${beacon.devices?.make} ${beacon.devices?.model}`,
-        timestamp: beacon.reported_at,
-        icon: 'my_location',
-        color: Colors.secondary,
+        timestamp: beacon.reported_at, icon: 'my_location', color: theme.text,
       })
     })
 
-    // Sort by timestamp
     activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     setRecentActivity(activities.slice(0, 8))
   }
 
-  const containerStyle: CSSProperties = {
-    paddingTop: '32px',
-    paddingBottom: '32px',
-    paddingLeft: '32px',
-    paddingRight: '32px',
-    maxWidth: '1600px',
-    margin: '0 auto',
-  }
-
-  const headerStyle: CSSProperties = {
-    marginBottom: '32px',
-  }
-
-  const titleStyle: CSSProperties = {
-    fontSize: '32px',
-    fontWeight: 700,
-    color: Colors.onSurface,
-    marginBottom: '8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  }
-
-  const subtitleStyle: CSSProperties = {
-    fontSize: '16px',
-    color: Colors.onSurfaceVariant,
-  }
-
-  const gridStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: '20px',
-    marginBottom: '32px',
-  }
-
-  const statCardStyle: CSSProperties = {
-    padding: '24px',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    border: `1px solid ${Colors.outlineVariant}`,
-  }
-
-  const activitySectionStyle: CSSProperties = {
-    marginTop: '32px',
-  }
-
-  const activityListStyle: CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-  }
-
-  const activityItemStyle: CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '16px 20px',
-    borderLeft: `3px solid ${Colors.primary}`,
-  }
+  const statCards = [
+    { label: 'Lost Devices', value: stats.totalLostDevices, icon: 'warning', color: theme.error, path: '/police/devices' },
+    { label: 'Active Reports', value: stats.activeReports, icon: 'description', color: theme.text, path: '/police/reports' },
+    { label: 'Active Chats', value: stats.totalChats, icon: 'forum', color: theme.textSecondary, path: '/police/chats' },
+    { label: 'Recovered', value: stats.devicesRecovered, icon: 'check_circle', color: theme.text },
+    { label: 'Alerts (24h)', value: stats.recentAlerts, icon: 'notifications_active', color: theme.text },
+    { label: 'Registered Users', value: stats.totalUsers, icon: 'people', color: theme.text },
+  ]
 
   if (loading) {
     return (
-      <div style={{ ...containerStyle, textAlign: 'center', paddingTop: '120px' }}>
-        <span className="material-icons" style={{ fontSize: '48px', color: Colors.primary, animation: 'spin 1s linear infinite' }}>
-          sync
-        </span>
-        <p style={{ marginTop: '16px', color: Colors.onSurfaceVariant }}>Loading dashboard...</p>
+      <div style={{ padding: '120px 32px 32px', maxWidth: '1600px', margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ width: '24px', height: '24px', border: `2px solid ${theme.border}`, borderTopColor: theme.text, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+        <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: theme.textTertiary, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Loading dashboard...</p>
       </div>
     )
   }
 
   return (
-    <div style={containerStyle}>
-      <div style={headerStyle}>
-        <h1 style={titleStyle}>
-          <span className="material-icons" style={{ fontSize: '40px', color: Colors.primary }}>
-            local_police
-          </span>
-          Police Command Center
-        </h1>
-        <p style={subtitleStyle}>Real-time monitoring and device recovery operations</p>
+    <div style={{ padding: '32px', maxWidth: '1600px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <span style={{ display: 'block', fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', letterSpacing: '0.2em', color: theme.textTertiary, textTransform: 'uppercase', marginBottom: '8px' }}>[ Police — Command Center ]</span>
+        <h1 style={{ fontSize: '32px', fontWeight: 600, color: theme.text, marginBottom: '4px', fontFamily: "'Space Grotesk', system-ui, sans-serif", letterSpacing: '-0.02em' }}>Dashboard</h1>
+        <p style={{ fontSize: '14px', color: theme.textSecondary }}>Real-time monitoring and device recovery operations</p>
       </div>
 
-      <div style={gridStyle}>
-        <Card 
-          style={statCardStyle}
-          onClick={() => navigate('/police/devices')}
-          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.error}40` }}
-          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '56px', 
-              height: '56px', 
-              borderRadius: '14px', 
-              backgroundColor: `${Colors.error}20`, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <span className="material-icons" style={{ fontSize: '28px', color: Colors.error }}>warning</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+        {statCards.map((stat, i) => (
+          <Card
+            key={i}
+            style={{ padding: '24px', cursor: stat.path ? 'pointer' : 'default', border: `1px solid ${theme.border}` }}
+            onClick={stat.path ? () => navigate(stat.path!) : undefined}
+            onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${stat.color}20` }}
+            onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '56px', height: '56px', backgroundColor: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-icons" style={{ fontSize: '28px', color: stat.color }}>{stat.icon}</span>
+              </div>
+              <div>
+                <div style={{ fontSize: '36px', fontWeight: 700, color: theme.text }}>{stat.value}</div>
+                <div style={{ fontSize: '14px', color: theme.textSecondary, fontWeight: 500 }}>{stat.label}</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: '36px', fontWeight: 700, color: Colors.onSurface }}>{stats.totalLostDevices}</div>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>Lost Devices</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card 
-          style={statCardStyle}
-          onClick={() => navigate('/police/reports')}
-          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.primary}40` }}
-          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '56px', 
-              height: '56px', 
-              borderRadius: '14px', 
-              backgroundColor: `${Colors.primary}20`, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <span className="material-icons" style={{ fontSize: '28px', color: Colors.primary }}>description</span>
-            </div>
-            <div>
-              <div style={{ fontSize: '36px', fontWeight: 700, color: Colors.onSurface }}>{stats.activeReports}</div>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>Active Reports</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card 
-          style={statCardStyle}
-          onClick={() => navigate('/police/chats')}
-          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.tertiary}40` }}
-          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '56px', 
-              height: '56px', 
-              borderRadius: '14px', 
-              backgroundColor: `${Colors.tertiary}20`, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <span className="material-icons" style={{ fontSize: '28px', color: Colors.tertiary }}>forum</span>
-            </div>
-            <div>
-              <div style={{ fontSize: '36px', fontWeight: 700, color: Colors.onSurface }}>{stats.totalChats}</div>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>Active Chats</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card 
-          style={statCardStyle}
-          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.secondary}40` }}
-          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '56px', 
-              height: '56px', 
-              borderRadius: '14px', 
-              backgroundColor: `${Colors.secondary}20`, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <span className="material-icons" style={{ fontSize: '28px', color: Colors.secondary }}>check_circle</span>
-            </div>
-            <div>
-              <div style={{ fontSize: '36px', fontWeight: 700, color: Colors.onSurface }}>{stats.devicesRecovered}</div>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>Recovered</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card 
-          style={statCardStyle}
-          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.accent}40` }}
-          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '56px', 
-              height: '56px', 
-              borderRadius: '14px', 
-              backgroundColor: `${Colors.accent}20`, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <span className="material-icons" style={{ fontSize: '28px', color: Colors.accent }}>notifications_active</span>
-            </div>
-            <div>
-              <div style={{ fontSize: '36px', fontWeight: 700, color: Colors.onSurface }}>{stats.recentAlerts}</div>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>Alerts (24h)</div>
-            </div>
-          </div>
-        </Card>
-
-        <Card 
-          style={statCardStyle}
-          onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${Colors.primary}40` }}
-          onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '56px', 
-              height: '56px', 
-              borderRadius: '14px', 
-              backgroundColor: `${Colors.primary}20`, 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <span className="material-icons" style={{ fontSize: '28px', color: Colors.primary }}>people</span>
-            </div>
-            <div>
-              <div style={{ fontSize: '36px', fontWeight: 700, color: Colors.onSurface }}>{stats.totalUsers}</div>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>Registered Users</div>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        ))}
       </div>
 
-      <div style={activitySectionStyle}>
-        <h2 style={{ fontSize: '24px', fontWeight: 600, color: Colors.onSurface, marginBottom: '20px' }}>
-          Recent Activity
-        </h2>
+      <div style={{ marginTop: '32px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 600, color: theme.text, marginBottom: '20px' }}>Recent Activity</h2>
         {recentActivity.length === 0 ? (
           <Card style={{ padding: '40px', textAlign: 'center' }}>
-            <span className="material-icons" style={{ fontSize: '48px', color: Colors.outline, marginBottom: '12px' }}>
-              inbox
-            </span>
-            <p style={{ color: Colors.onSurfaceVariant }}>No recent activity</p>
+            <span className="material-icons" style={{ fontSize: '48px', color: theme.textTertiary, marginBottom: '12px' }}>inbox</span>
+            <p style={{ color: theme.textSecondary }}>No recent activity</p>
           </Card>
         ) : (
-          <div style={activityListStyle}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {recentActivity.map((activity) => (
-              <Card key={activity.id} style={activityItemStyle}>
-                <div style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '10px',
-                  backgroundColor: `${activity.color}20`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <span className="material-icons" style={{ fontSize: '22px', color: activity.color }}>
-                    {activity.icon}
-                  </span>
+              <Card key={activity.id} style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px 20px', borderLeft: `3px solid ${theme.text}` }}>
+                <div style={{ width: '40px', height: '40px', backgroundColor: `${activity.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span className="material-icons" style={{ fontSize: '22px', color: activity.color }}>{activity.icon}</span>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600, color: Colors.onSurface, marginBottom: '4px' }}>
-                    {activity.title}
-                  </div>
-                  <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant }}>
-                    {activity.description}
-                  </div>
+                  <div style={{ fontWeight: 600, color: theme.text, marginBottom: '4px' }}>{activity.title}</div>
+                  <div style={{ fontSize: '14px', color: theme.textSecondary }}>{activity.description}</div>
                 </div>
-                <div style={{ fontSize: '12px', color: Colors.outline }}>
-                  {new Date(activity.timestamp).toLocaleString()}
-                </div>
+                <div style={{ fontSize: '12px', color: theme.textTertiary }}>{new Date(activity.timestamp).toLocaleString()}</div>
               </Card>
             ))}
           </div>

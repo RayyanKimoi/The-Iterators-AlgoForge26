@@ -1,5 +1,5 @@
 import { CSSProperties } from 'react'
-import { Colors } from '../lib/colors'
+import { useTheme } from '../hooks/ThemeContext'
 
 type ButtonProps = {
   children: React.ReactNode
@@ -26,84 +26,87 @@ export function Button({
   style,
   icon,
 }: ButtonProps) {
+  const { theme } = useTheme()
+
   const baseStyle: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '10px',
+    gap: '8px',
     border: 'none',
-    borderRadius: '12px',
-    fontWeight: 600,
+    borderRadius: '0px',
+    fontWeight: 500,
     cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    opacity: disabled || loading ? 0.5 : 1,
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    opacity: disabled || loading ? 0.4 : 1,
+    transition: 'all 0.3s cubic-bezier(0.33, 1, 0.68, 1)',
     width: fullWidth ? '100%' : 'auto',
-    fontFamily: 'Inter, system-ui, sans-serif',
-    letterSpacing: '0.3px',
+    fontFamily: "'Space Grotesk', system-ui, sans-serif",
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase' as const,
+    fontSize: '13px',
+    position: 'relative',
+    overflow: 'hidden',
   }
 
   const sizeStyles: Record<string, CSSProperties> = {
-    small: { padding: '10px 20px', fontSize: '14px' },
-    medium: { padding: '14px 28px', fontSize: '15px' },
-    large: { padding: '16px 32px', fontSize: '16px' },
+    small: { padding: '10px 20px', fontSize: '12px' },
+    medium: { padding: '14px 32px', fontSize: '13px' },
+    large: { padding: '16px 40px', fontSize: '14px' },
   }
 
+  // Primary is now outline-style (transparent bg, border) with fill-on-hover
   const variantStyles: Record<string, CSSProperties> = {
     primary: {
-      backgroundColor: Colors.primary,
-      color: Colors.onPrimary,
-      boxShadow: `0 2px 8px ${Colors.primary}40`,
+      backgroundColor: 'transparent',
+      color: theme.text,
+      border: `1.5px solid ${theme.text}`,
     },
     secondary: {
-      backgroundColor: Colors.secondary,
-      color: Colors.onSecondary,
-      boxShadow: `0 2px 8px ${Colors.secondary}40`,
+      backgroundColor: theme.bgSurfaceDim,
+      color: theme.text,
+      border: `1.5px solid ${theme.border}`,
     },
     outline: {
       backgroundColor: 'transparent',
-      color: Colors.primary,
-      border: `2px solid ${Colors.primary}`,
+      color: theme.text,
+      border: `1.5px solid ${theme.text}`,
     },
     danger: {
-      backgroundColor: Colors.error,
-      color: '#fff',
-      boxShadow: `0 2px 8px ${Colors.error}40`,
+      backgroundColor: 'transparent',
+      color: theme.error,
+      border: `1.5px solid ${theme.error}`,
     },
     ghost: {
       backgroundColor: 'transparent',
-      color: Colors.onSurface,
+      color: theme.text,
+      border: '1.5px solid transparent',
     },
   }
+
+  // All actionable variants get the slide-fill animation
+  const variantClass = variant === 'danger' ? 'app-btn app-btn--danger'
+    : variant === 'secondary' ? 'app-btn app-btn--secondary'
+    : variant === 'ghost' ? ''
+    : 'app-btn app-btn--outline'
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
+      className={variantClass}
       style={{ ...baseStyle, ...sizeStyles[size], ...variantStyles[variant], ...style }}
-      onMouseEnter={(e) => {
-        if (!disabled && !loading) {
-          e.currentTarget.style.transform = 'translateY(-1px)'
-          if (variant !== 'ghost' && variant !== 'outline') {
-            e.currentTarget.style.boxShadow = `0 4px 16px ${variantStyles[variant].backgroundColor}60`
-          }
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)'
-        e.currentTarget.style.boxShadow = variantStyles[variant].boxShadow || 'none'
-      }}
     >
       {loading ? (
-        <span className="material-icons" style={{ animation: 'spin 1s linear infinite', fontSize: '20px' }}>
+        <span className="material-icons" style={{ animation: 'spin 1s linear infinite', fontSize: '18px', position: 'relative', zIndex: 1 }}>
           sync
         </span>
       ) : icon ? (
-        <span className="material-icons" style={{ fontSize: '20px' }}>
+        <span className="material-icons" style={{ fontSize: '18px', position: 'relative', zIndex: 1 }}>
           {icon}
         </span>
       ) : null}
-      {children}
+      <span style={{ position: 'relative', zIndex: 1 }}>{children}</span>
     </button>
   )
 }

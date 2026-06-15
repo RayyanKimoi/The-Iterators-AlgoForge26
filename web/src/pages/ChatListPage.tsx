@@ -1,8 +1,8 @@
 import { CSSProperties, useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Colors } from '../lib/colors'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/ThemeContext'
 import { Card } from '../components/Card'
 
 type RoomRecord = {
@@ -56,6 +56,7 @@ function getRelativeTime(dateIso: string) {
 export function ChatListPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { theme } = useTheme()
   const [rooms, setRooms] = useState<RoomItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +72,6 @@ export function ChatListPage() {
     setError(null)
 
     try {
-      // Fetch rooms where user is owner
       const { data: ownerRooms, error: ownerError } = await supabase
         .from('chat_rooms')
         .select('id, owner_id, device_id, is_active, created_at, devices(make, model, imei_primary, status)')
@@ -85,7 +85,6 @@ export function ChatListPage() {
       for (const room of (ownerRooms || []) as RoomRecord[]) {
         const device = room.devices
         
-        // Fetch last message
         const { data: lastMsg } = await supabase
           .from('chat_messages')
           .select('content, sent_at')
@@ -94,7 +93,6 @@ export function ChatListPage() {
           .limit(1)
           .single()
 
-        // Fetch unread count
         const { count } = await supabase
           .from('chat_messages')
           .select('id', { count: 'exact', head: true })
@@ -130,38 +128,13 @@ export function ChatListPage() {
   useEffect(() => {
     fetchRooms()
 
-    // Subscribe to new messages for real-time unread count updates
     const channel = supabase
       .channel('chat_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_messages',
-        },
-        () => {
-          // Refetch rooms when any message changes
-          fetchRooms()
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chat_rooms',
-        },
-        () => {
-          // Refetch when room status changes
-          fetchRooms()
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages' }, () => { fetchRooms() })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_rooms' }, () => { fetchRooms() })
       .subscribe()
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [fetchRooms])
 
   const containerStyle: CSSProperties = {
@@ -170,69 +143,12 @@ export function ChatListPage() {
     margin: '0 auto',
   }
 
-  const headerStyle: CSSProperties = {
-    marginBottom: '40px',
-    background: `linear-gradient(135deg, ${Colors.primary}10 0%, transparent 100%)`,
-    padding: '32px',
-    borderRadius: '20px',
-    border: `1px solid ${Colors.primary}20`,
-  }
-
-  const titleStyle: CSSProperties = {
-    fontSize: '32px',
-    fontWeight: 700,
-    color: Colors.onSurface,
-    marginBottom: '12px',
-    letterSpacing: '-0.5px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  }
-
-  const subtitleStyle: CSSProperties = {
-    color: Colors.onSurfaceVariant,
-    fontSize: '16px',
-  }
-
-  const roomCardStyle = (isActive: boolean): CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px',
-    padding: '24px',
-    marginBottom: '16px',
-    cursor: 'pointer',
-    opacity: isActive ? 1 : 0.7,
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-    border: `1px solid ${Colors.outlineVariant}`,
-  })
-
-  const avatarStyle: CSSProperties = {
-    width: '64px',
-    height: '64px',
-    borderRadius: '16px',
-    background: `linear-gradient(135deg, ${Colors.primary}30 0%, ${Colors.primary}10 100%)`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    border: `2px solid ${Colors.primary}40`,
-  }
-
-  const emptyStyle: CSSProperties = {
-    textAlign: 'center',
-    padding: '80px 40px',
-    color: Colors.onSurfaceVariant,
-    background: `linear-gradient(135deg, ${Colors.primary}08 0%, transparent 100%)`,
-  }
-
   if (loading) {
     return (
       <div style={containerStyle}>
-        <div style={{ textAlign: 'center', padding: '100px', color: Colors.onSurfaceVariant }}>
-          <span className="material-icons" style={{ fontSize: '48px', animation: 'spin 1s linear infinite', marginBottom: '16px', display: 'block' }}>
-            sync
-          </span>
-          <div style={{ fontSize: '18px', fontWeight: 600 }}>Loading chats...</div>
+        <div style={{ textAlign: 'center', padding: '100px' }}>
+          <div style={{ width: '24px', height: '24px', border: `2px solid ${theme.border}`, borderTopColor: theme.text, borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: theme.textTertiary, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Loading chats...</div>
         </div>
       </div>
     )
@@ -240,39 +156,32 @@ export function ChatListPage() {
 
   return (
     <div style={containerStyle}>
-      <header style={headerStyle}>
-        <h1 style={titleStyle}>
-          <span className="material-icons" style={{ fontSize: '36px', color: Colors.primary }}>
-            chat
-          </span>
+      <header style={{ marginBottom: '40px', backgroundColor: theme.bgSurfaceDim, padding: '32px', border: `1px solid ${theme.border}` }}>
+        <h1 style={{ fontSize: '32px', fontWeight: 700, color: theme.text, marginBottom: '12px', letterSpacing: '-0.5px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span className="material-icons" style={{ fontSize: '36px', color: theme.text }}>chat</span>
           Messages
         </h1>
-        <p style={subtitleStyle}>
+        <p style={{ color: theme.textSecondary, fontSize: '16px' }}>
           Anonymous conversations for device recovery
         </p>
       </header>
 
       {error && (
-        <Card variant="elevated" style={{ backgroundColor: `${Colors.error}20`, marginBottom: '24px', border: `2px solid ${Colors.error}40`, padding: '20px' }}>
+        <Card variant="elevated" style={{ backgroundColor: theme.errorBg, marginBottom: '24px', border: `2px solid ${theme.errorBorder}`, padding: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="material-icons" style={{ color: Colors.error }}>error</span>
-            <p style={{ color: Colors.error, fontWeight: 600 }}>{error}</p>
+            <span className="material-icons" style={{ color: theme.error }}>error</span>
+            <p style={{ color: theme.error, fontWeight: 600 }}>{error}</p>
           </div>
         </Card>
       )}
 
       {rooms.length === 0 ? (
-        <Card variant="elevated" style={emptyStyle}>
-          <span
-            className="material-icons"
-            style={{ fontSize: '96px', color: Colors.primary, marginBottom: '24px', display: 'block', opacity: 0.5 }}
-          >
+        <Card variant="elevated" style={{ textAlign: 'center', padding: '80px 40px', backgroundColor: theme.bgSurfaceDim }}>
+          <span className="material-icons" style={{ fontSize: '96px', color: theme.text, marginBottom: '24px', display: 'block', opacity: 0.5 }}>
             chat_bubble_outline
           </span>
-          <h2 style={{ color: Colors.onSurface, marginBottom: '12px', fontSize: '28px', fontWeight: 700 }}>
-            No active chats
-          </h2>
-          <p style={{ fontSize: '16px', maxWidth: '500px', margin: '0 auto' }}>
+          <h2 style={{ color: theme.text, marginBottom: '12px', fontSize: '28px', fontWeight: 700 }}>No active chats</h2>
+          <p style={{ fontSize: '16px', maxWidth: '500px', margin: '0 auto', color: theme.textSecondary }}>
             When someone finds your lost device, a chat will appear here for coordination.
           </p>
         </Card>
@@ -282,82 +191,55 @@ export function ChatListPage() {
             <Card
               key={room.id}
               variant="elevated"
-              style={roomCardStyle(room.isActive)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '20px', padding: '24px',
+                marginBottom: '16px', cursor: 'pointer', opacity: room.isActive ? 1 : 0.7,
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
               onClick={() => navigate(`/chat/${room.id}`)}
             >
-              <div style={avatarStyle}>
-                <span className="material-icons" style={{ color: Colors.primary, fontSize: '32px' }}>
-                  smartphone
-                </span>
+              <div style={{
+                width: '64px', height: '64px', backgroundColor: theme.bgSurfaceDim,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                border: `2px solid ${theme.border}`,
+              }}>
+                <span className="material-icons" style={{ color: theme.text, fontSize: '32px' }}>smartphone</span>
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 style={{ color: Colors.onSurface, fontSize: '20px', fontWeight: 700, letterSpacing: '-0.2px' }}>
-                    {room.make} {room.model}
-                  </h3>
-                  <span style={{ color: Colors.onSurfaceVariant, fontSize: '13px', fontWeight: 600 }}>
-                    {getRelativeTime(room.lastSentAt)}
-                  </span>
+                  <h3 style={{ color: theme.text, fontSize: '20px', fontWeight: 700, letterSpacing: '-0.2px' }}>{room.make} {room.model}</h3>
+                  <span style={{ color: theme.textSecondary, fontSize: '13px', fontWeight: 600 }}>{getRelativeTime(room.lastSentAt)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <p
-                    style={{
-                      color: Colors.onSurfaceVariant,
-                      fontSize: '15px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '80%',
-                    }}
-                  >
+                  <p style={{ color: theme.textSecondary, fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '80%' }}>
                     {room.lastMessage}
                   </p>
                   {room.unreadCount > 0 && (
-                    <span
-                      style={{
-                        backgroundColor: Colors.primary,
-                        color: Colors.onPrimary,
-                        fontSize: '13px',
-                        fontWeight: 700,
-                        padding: '4px 12px',
-                        borderRadius: '12px',
-                        minWidth: '24px',
-                        textAlign: 'center',
-                      }}
-                    >
+                    <span style={{
+                      backgroundColor: theme.primary, color: theme.textInverse,
+                      fontSize: '13px', fontWeight: 700, padding: '4px 12px', minWidth: '24px', textAlign: 'center',
+                    }}>
                       {room.unreadCount}
                     </span>
                   )}
                 </div>
                 <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: Colors.onSurfaceVariant,
-                      backgroundColor: Colors.surfaceContainerHighest,
-                      padding: '4px 12px',
-                      borderRadius: '8px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
+                  <span style={{
+                    fontSize: '12px', fontWeight: 600, color: theme.textSecondary,
+                    backgroundColor: theme.bgSurfaceDim, padding: '4px 12px',
+                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                  }}>
                     IMEI ···· {room.imeiTail}
                   </span>
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: room.isActive ? Colors.secondary : Colors.error,
-                      backgroundColor: room.isActive ? `${Colors.secondary}20` : `${Colors.error}20`,
-                      padding: '4px 12px',
-                      borderRadius: '8px',
-                      border: `2px solid ${room.isActive ? Colors.secondary : Colors.error}40`,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}
-                  >
+                  <span style={{
+                    fontSize: '12px', fontWeight: 700,
+                    color: room.isActive ? theme.text : theme.error,
+                    backgroundColor: room.isActive ? theme.bgSurfaceDim : theme.errorBg,
+                    padding: '4px 12px',
+                    border: `2px solid ${room.isActive ? theme.border : theme.errorBorder}`,
+                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                  }}>
                     {room.isActive ? 'Active' : 'Closed'}
                   </span>
                 </div>

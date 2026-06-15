@@ -1,5 +1,5 @@
 import { CSSProperties, useState } from 'react'
-import { Colors } from '../../lib/colors'
+import { useTheme } from '../../hooks/ThemeContext'
 import { supabase } from '../../lib/supabase'
 import { Card } from '../../components/Card'
 import { Input } from '../../components/Input'
@@ -15,6 +15,7 @@ type SearchResult = {
 }
 
 export function PoliceSearchPage() {
+  const { theme } = useTheme()
   const [searchQuery, setSearchQuery] = useState('')
   const [searchType, setSearchType] = useState<'all' | 'imei' | 'serial' | 'complaint' | 'phone'>('all')
   const [results, setResults] = useState<SearchResult[]>([])
@@ -123,7 +124,7 @@ export function PoliceSearchPage() {
   const titleStyle: CSSProperties = {
     fontSize: '32px',
     fontWeight: 700,
-    color: Colors.onSurface,
+    color: theme.text,
     marginBottom: '8px',
     display: 'flex',
     alignItems: 'center',
@@ -143,10 +144,10 @@ export function PoliceSearchPage() {
 
   const filterButtonStyle = (isActive: boolean): CSSProperties => ({
     padding: '8px 18px',
-    borderRadius: '10px',
-    backgroundColor: isActive ? Colors.primary : Colors.surfaceContainerHigh,
-    color: isActive ? Colors.onPrimary : Colors.onSurfaceVariant,
-    border: `1px solid ${isActive ? Colors.primary : Colors.outlineVariant}`,
+    borderRadius: '0px',
+    backgroundColor: isActive ? theme.text : theme.bgSurfaceDim,
+    color: isActive ? theme.textInverse : theme.textSecondary,
+    border: `1px solid ${isActive ? theme.text : theme.border}`,
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 600,
@@ -181,10 +182,10 @@ export function PoliceSearchPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'device': return Colors.primary
-      case 'report': return Colors.error
-      case 'user': return Colors.secondary
-      default: return Colors.outline
+      case 'device': return theme.text
+      case 'report': return theme.error
+      case 'user': return theme.text
+      default: return theme.textTertiary
     }
   }
 
@@ -192,12 +193,12 @@ export function PoliceSearchPage() {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h1 style={titleStyle}>
-          <span className="material-icons" style={{ fontSize: '40px', color: Colors.primary }}>
+          <span className="material-icons" style={{ fontSize: '40px', color: theme.text }}>
             search
           </span>
           Advanced Search
         </h1>
-        <p style={{ fontSize: '15px', color: Colors.onSurfaceVariant }}>
+        <p style={{ fontSize: '14px', color: theme.textSecondary }}>
           Search by IMEI, serial number, complaint number, phone number, or owner name
         </p>
       </div>
@@ -249,24 +250,24 @@ export function PoliceSearchPage() {
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '60px' }}>
-          <span className="material-icons" style={{ fontSize: '48px', color: Colors.primary, animation: 'spin 1s linear infinite' }}>
+          <span className="material-icons" style={{ fontSize: '48px', color: theme.text, animation: 'spin 1s linear infinite' }}>
             sync
           </span>
-          <p style={{ marginTop: '16px', color: Colors.onSurfaceVariant }}>Searching...</p>
+          <p style={{ marginTop: '16px', color: theme.textSecondary }}>Searching...</p>
         </div>
       ) : searched && results.length === 0 ? (
         <Card style={{ padding: '60px', textAlign: 'center' }}>
-          <span className="material-icons" style={{ fontSize: '64px', color: Colors.outline, marginBottom: '16px' }}>
+          <span className="material-icons" style={{ fontSize: '64px', color: theme.textTertiary, marginBottom: '16px' }}>
             search_off
           </span>
-          <h2 style={{ color: Colors.onSurface, marginBottom: '8px' }}>No results found</h2>
-          <p style={{ color: Colors.onSurfaceVariant }}>
+          <h2 style={{ color: theme.text, marginBottom: '8px' }}>No results found</h2>
+          <p style={{ color: theme.textSecondary }}>
             Try different search terms or filter options
           </p>
         </Card>
       ) : results.length > 0 ? (
         <>
-          <h2 style={{ fontSize: '20px', fontWeight: 600, color: Colors.onSurface, marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, color: theme.text, marginBottom: '16px' }}>
             {results.length} result{results.length !== 1 ? 's' : ''} found
           </h2>
           <div style={resultsStyle}>
@@ -288,7 +289,7 @@ export function PoliceSearchPage() {
                     style={{
                       width: '56px',
                       height: '56px',
-                      borderRadius: '14px',
+                      borderRadius: '0px',
                       backgroundColor: `${getTypeColor(result.type)}20`,
                       display: 'flex',
                       alignItems: 'center',
@@ -304,17 +305,17 @@ export function PoliceSearchPage() {
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
                       <div>
-                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: Colors.onSurface, marginBottom: '4px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: 600, color: theme.text, marginBottom: '4px' }}>
                           {result.title}
                         </h3>
-                        <p style={{ fontSize: '14px', color: Colors.onSurfaceVariant }}>
+                        <p style={{ fontSize: '14px', color: theme.textSecondary }}>
                           {result.subtitle}
                         </p>
                       </div>
                       <span
                         style={{
                           padding: '4px 12px',
-                          borderRadius: '6px',
+                          borderRadius: '0px',
                           backgroundColor: `${getTypeColor(result.type)}20`,
                           color: getTypeColor(result.type),
                           fontSize: '11px',
@@ -326,7 +327,7 @@ export function PoliceSearchPage() {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '13px', color: Colors.onSurfaceVariant }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '13px', color: theme.textSecondary }}>
                       {result.details.map((detail, index) => (
                         <span key={index}>
                           {detail}
@@ -341,11 +342,11 @@ export function PoliceSearchPage() {
         </>
       ) : (
         <Card style={{ padding: '60px', textAlign: 'center' }}>
-          <span className="material-icons" style={{ fontSize: '64px', color: Colors.outline, marginBottom: '16px' }}>
+          <span className="material-icons" style={{ fontSize: '64px', color: theme.textTertiary, marginBottom: '16px' }}>
             manage_search
           </span>
-          <h2 style={{ color: Colors.onSurface, marginBottom: '8px' }}>Start Searching</h2>
-          <p style={{ color: Colors.onSurfaceVariant }}>
+          <h2 style={{ color: theme.text, marginBottom: '8px' }}>Start Searching</h2>
+          <p style={{ color: theme.textSecondary }}>
             Enter search terms above to find devices, reports, or users
           </p>
         </Card>

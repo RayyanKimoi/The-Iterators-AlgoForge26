@@ -40,12 +40,15 @@ export function isValidIMEI(value: string) {
 }
 
 export function useDevices() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const fetchDevices = useCallback(async () => {
+    // Wait for auth to finish loading before making decisions
+    if (authLoading) return
+
     if (!user) {
       setDevices([])
       setLoading(false)
@@ -55,21 +58,26 @@ export function useDevices() {
     setLoading(true)
     setError(null)
 
-    const { data, error: fetchError } = await supabase
-      .from('devices')
-      .select('*')
-      .eq('owner_id', user.id)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('devices')
+        .select('*')
+        .eq('owner_id', user.id)
+        .order('created_at', { ascending: false })
 
-    if (fetchError) {
-      setError(fetchError.message)
+      if (fetchError) {
+        setError(fetchError.message)
+        setDevices([])
+      } else {
+        setDevices(data as Device[])
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load devices')
       setDevices([])
-    } else {
-      setDevices(data as Device[])
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
-  }, [user])
+  }, [user, authLoading])
 
   useEffect(() => {
     fetchDevices()

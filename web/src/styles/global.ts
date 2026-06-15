@@ -1,5 +1,3 @@
-import { Colors } from '../lib/colors'
-
 export const globalStyles = `
   * {
     margin: 0;
@@ -9,8 +7,6 @@ export const globalStyles = `
 
   body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: ${Colors.background};
-    color: ${Colors.onSurface};
     min-height: 100vh;
   }
 
@@ -18,12 +14,11 @@ export const globalStyles = `
     min-height: 100vh;
   }
 
-  a {
-    color: ${Colors.primary};
+  .app-layout a {
     text-decoration: none;
   }
 
-  a:hover {
+  .app-layout a:hover {
     text-decoration: underline;
   }
 
@@ -37,46 +32,78 @@ export const globalStyles = `
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: ${Colors.surfaceContainer};
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: ${Colors.outline};
-    border-radius: 4px;
+    background: #D4D4D4;
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: ${Colors.onSurfaceVariant};
+    background: #A3A3A3;
   }
 
-  /* Fix autofill styling for better appearance */
+  /* Dark mode scrollbar */
+  .app-layout.dark ::-webkit-scrollbar-thumb {
+    background: #333;
+  }
+  .app-layout.dark ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
     -webkit-background-clip: text;
-    -webkit-text-fill-color: ${Colors.onSurface} !important;
     transition: background-color 5000s ease-in-out 0s;
-    box-shadow: inset 0 0 20px 20px ${Colors.surfaceContainerHigh};
   }
 
-  /* Focus state for input wrapper */
+  .app-layout:not(.dark) input:-webkit-autofill {
+    -webkit-text-fill-color: #000 !important;
+    box-shadow: inset 0 0 20px 20px #fff;
+  }
+
+  .app-layout.dark input:-webkit-autofill {
+    -webkit-text-fill-color: #F0F0F0 !important;
+    box-shadow: inset 0 0 20px 20px #141414;
+  }
+
   .input-wrapper:focus-within {
-    border-color: ${Colors.primary} !important;
+    border-color: #000 !important;
   }
 
-  /* Placeholder styling */
+  .app-layout.dark .input-wrapper:focus-within {
+    border-color: #fff !important;
+  }
+
   input::placeholder {
-    color: ${Colors.outline};
-    opacity: 0.7;
+    color: #A3A3A3;
+    opacity: 0.8;
   }
 
   input:focus::placeholder {
     opacity: 0.5;
+  }
+
+  /* Grid background for app layout */
+  .app-layout main {
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+
+  .app-layout.dark main {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
   }
 `

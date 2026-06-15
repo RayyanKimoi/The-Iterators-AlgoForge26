@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useState } from 'react'
-import { Colors } from '../../lib/colors'
+import { useTheme } from '../../hooks/ThemeContext'
 import { supabase } from '../../lib/supabase'
 import { Card } from '../../components/Card'
 
@@ -13,6 +13,7 @@ type AnalyticsData = {
 }
 
 export function PoliceAnalyticsPage() {
+  const { theme } = useTheme()
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     devicesByStatus: [],
     devicesByMake: [],
@@ -137,7 +138,7 @@ export function PoliceAnalyticsPage() {
   const titleStyle: CSSProperties = {
     fontSize: '32px',
     fontWeight: 700,
-    color: Colors.onSurface,
+    color: theme.text,
     marginBottom: '8px',
     display: 'flex',
     alignItems: 'center',
@@ -158,14 +159,14 @@ export function PoliceAnalyticsPage() {
   const chartTitleStyle: CSSProperties = {
     fontSize: '18px',
     fontWeight: 600,
-    color: Colors.onSurface,
+    color: theme.text,
     marginBottom: '20px',
   }
 
   const barStyle = (value: number, maxValue: number, color: string): CSSProperties => ({
     height: '32px',
     backgroundColor: `${color}30`,
-    borderRadius: '6px',
+    borderRadius: '0px',
     display: 'flex',
     alignItems: 'center',
     marginBottom: '12px',
@@ -180,7 +181,7 @@ export function PoliceAnalyticsPage() {
     alignItems: 'center',
     justifyContent: 'flex-end',
     paddingRight: '12px',
-    color: Colors.onPrimary,
+    color: theme.textInverse,
     fontSize: '13px',
     fontWeight: 600,
     transition: 'width 0.5s ease',
@@ -189,10 +190,10 @@ export function PoliceAnalyticsPage() {
   if (loading) {
     return (
       <div style={{ ...containerStyle, textAlign: 'center', paddingTop: '120px' }}>
-        <span className="material-icons" style={{ fontSize: '48px', color: Colors.primary, animation: 'spin 1s linear infinite' }}>
+        <span className="material-icons" style={{ fontSize: '48px', color: theme.text, animation: 'spin 1s linear infinite' }}>
           sync
         </span>
-        <p style={{ marginTop: '16px', color: Colors.onSurfaceVariant }}>Loading analytics...</p>
+        <p style={{ marginTop: '16px', color: theme.textSecondary }}>Loading analytics...</p>
       </div>
     )
   }
@@ -201,37 +202,37 @@ export function PoliceAnalyticsPage() {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h1 style={titleStyle}>
-          <span className="material-icons" style={{ fontSize: '40px', color: Colors.primary }}>
+          <span className="material-icons" style={{ fontSize: '40px', color: theme.text }}>
             analytics
           </span>
           Analytics & Insights
         </h1>
-        <p style={{ fontSize: '15px', color: Colors.onSurfaceVariant }}>
+        <p style={{ fontSize: '14px', color: theme.textSecondary }}>
           Statistical analysis and trends
         </p>
       </div>
 
       <div style={gridStyle}>
         <Card style={{ padding: '32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', fontWeight: 700, color: Colors.secondary, marginBottom: '8px' }}>
+          <div style={{ fontSize: '48px', fontWeight: 700, color: theme.text, marginBottom: '8px' }}>
             {analytics.recoveryRate}%
           </div>
-          <div style={{ fontSize: '16px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>
+          <div style={{ fontSize: '16px', color: theme.textSecondary, fontWeight: 500 }}>
             Recovery Rate
           </div>
-          <div style={{ fontSize: '13px', color: Colors.outline, marginTop: '8px' }}>
+          <div style={{ fontSize: '13px', color: theme.textTertiary, marginTop: '8px' }}>
             Devices recovered vs reported
           </div>
         </Card>
 
         <Card style={{ padding: '32px', textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', fontWeight: 700, color: Colors.primary, marginBottom: '8px' }}>
+          <div style={{ fontSize: '48px', fontWeight: 700, color: theme.text, marginBottom: '8px' }}>
             {analytics.averageResolutionDays}
           </div>
-          <div style={{ fontSize: '16px', color: Colors.onSurfaceVariant, fontWeight: 500 }}>
+          <div style={{ fontSize: '16px', color: theme.textSecondary, fontWeight: 500 }}>
             Avg Days to Resolve
           </div>
-          <div style={{ fontSize: '13px', color: Colors.outline, marginTop: '8px' }}>
+          <div style={{ fontSize: '13px', color: theme.textTertiary, marginTop: '8px' }}>
             Average time to close reports
           </div>
         </Card>
@@ -241,7 +242,7 @@ export function PoliceAnalyticsPage() {
         <Card style={chartCardStyle}>
           <h3 style={chartTitleStyle}>Devices by Status</h3>
           {analytics.devicesByStatus.length === 0 ? (
-            <p style={{ color: Colors.onSurfaceVariant, textAlign: 'center', padding: '20px' }}>
+            <p style={{ color: theme.textSecondary, textAlign: 'center', padding: '20px' }}>
               No data available
             </p>
           ) : (
@@ -249,21 +250,21 @@ export function PoliceAnalyticsPage() {
               const maxCount = Math.max(...analytics.devicesByStatus.map(d => d.count))
               const percentage = (item.count / maxCount) * 100
               const statusColors: { [key: string]: string } = {
-                'registered': Colors.primary,
-                'lost': Colors.tertiary,
-                'stolen': Colors.error,
-                'found': Colors.secondary,
-                'recovered': Colors.secondary,
+                'registered': theme.text,
+                'lost': theme.textSecondary,
+                'stolen': theme.error,
+                'found': theme.text,
+                'recovered': theme.text,
               }
-              const color = statusColors[item.status] || Colors.outline
+              const color = statusColors[item.status] || theme.textTertiary
 
               return (
                 <div key={item.status}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '14px', color: Colors.onSurface, fontWeight: 500, textTransform: 'capitalize' }}>
+                    <span style={{ fontSize: '14px', color: theme.text, fontWeight: 500, textTransform: 'capitalize' }}>
                       {item.status}
                     </span>
-                    <span style={{ fontSize: '13px', color: Colors.onSurfaceVariant }}>
+                    <span style={{ fontSize: '13px', color: theme.textSecondary }}>
                       {item.count} devices
                     </span>
                   </div>
@@ -281,7 +282,7 @@ export function PoliceAnalyticsPage() {
         <Card style={chartCardStyle}>
           <h3 style={chartTitleStyle}>Top 10 Device Makes</h3>
           {analytics.devicesByMake.length === 0 ? (
-            <p style={{ color: Colors.onSurfaceVariant, textAlign: 'center', padding: '20px' }}>
+            <p style={{ color: theme.textSecondary, textAlign: 'center', padding: '20px' }}>
               No data available
             </p>
           ) : (
@@ -292,15 +293,15 @@ export function PoliceAnalyticsPage() {
               return (
                 <div key={item.make}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '14px', color: Colors.onSurface, fontWeight: 500 }}>
+                    <span style={{ fontSize: '14px', color: theme.text, fontWeight: 500 }}>
                       {item.make}
                     </span>
-                    <span style={{ fontSize: '13px', color: Colors.onSurfaceVariant }}>
+                    <span style={{ fontSize: '13px', color: theme.textSecondary }}>
                       {item.count} devices
                     </span>
                   </div>
-                  <div style={barStyle(item.count, maxCount, Colors.primary)}>
-                    <div style={barFillStyle(percentage, Colors.primary)}>
+                  <div style={barStyle(item.count, maxCount, theme.text)}>
+                    <div style={barFillStyle(percentage, theme.text)}>
                       {percentage > 15 && item.count}
                     </div>
                   </div>
@@ -315,7 +316,7 @@ export function PoliceAnalyticsPage() {
         <Card style={chartCardStyle}>
           <h3 style={chartTitleStyle}>Reports Over Time</h3>
           {analytics.reportsOverTime.length === 0 ? (
-            <p style={{ color: Colors.onSurfaceVariant, textAlign: 'center', padding: '20px' }}>
+            <p style={{ color: theme.textSecondary, textAlign: 'center', padding: '20px' }}>
               No reports in the last 6 months
             </p>
           ) : (
@@ -326,15 +327,15 @@ export function PoliceAnalyticsPage() {
               return (
                 <div key={item.month}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '14px', color: Colors.onSurface, fontWeight: 500 }}>
+                    <span style={{ fontSize: '14px', color: theme.text, fontWeight: 500 }}>
                       {item.month}
                     </span>
-                    <span style={{ fontSize: '13px', color: Colors.onSurfaceVariant }}>
+                    <span style={{ fontSize: '13px', color: theme.textSecondary }}>
                       {item.count} reports
                     </span>
                   </div>
-                  <div style={barStyle(item.count, maxCount, Colors.error)}>
-                    <div style={barFillStyle(percentage, Colors.error)}>
+                  <div style={barStyle(item.count, maxCount, theme.error)}>
+                    <div style={barFillStyle(percentage, theme.error)}>
                       {percentage > 15 && item.count}
                     </div>
                   </div>
@@ -347,7 +348,7 @@ export function PoliceAnalyticsPage() {
         <Card style={chartCardStyle}>
           <h3 style={chartTitleStyle}>Top Reward Amounts</h3>
           {analytics.topRewardAmounts.length === 0 ? (
-            <p style={{ color: Colors.onSurfaceVariant, textAlign: 'center', padding: '20px' }}>
+            <p style={{ color: theme.textSecondary, textAlign: 'center', padding: '20px' }}>
               No rewards offered
             </p>
           ) : (
@@ -356,8 +357,8 @@ export function PoliceAnalyticsPage() {
                 key={index}
                 style={{
                   padding: '14px',
-                  backgroundColor: Colors.surfaceContainerHigh,
-                  borderRadius: '10px',
+                  backgroundColor: theme.bgSurfaceDim,
+                  borderRadius: '0px',
                   marginBottom: '10px',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -365,14 +366,14 @@ export function PoliceAnalyticsPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '14px', color: Colors.onSurface, fontWeight: 500, marginBottom: '4px' }}>
+                  <div style={{ fontSize: '14px', color: theme.text, fontWeight: 500, marginBottom: '4px' }}>
                     {item.device}
                   </div>
-                  <div style={{ fontSize: '12px', color: Colors.outline }}>
+                  <div style={{ fontSize: '12px', color: theme.textTertiary }}>
                     Rank #{index + 1}
                   </div>
                 </div>
-                <div style={{ fontSize: '18px', fontWeight: 700, color: Colors.secondary }}>
+                <div style={{ fontSize: '18px', fontWeight: 700, color: theme.text }}>
                   ₹{item.amount.toLocaleString()}
                 </div>
               </div>

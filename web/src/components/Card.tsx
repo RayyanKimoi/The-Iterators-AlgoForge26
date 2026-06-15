@@ -1,5 +1,5 @@
 import { CSSProperties, ReactNode, HTMLAttributes } from 'react'
-import { Colors } from '../lib/colors'
+import { useTheme } from '../hooks/ThemeContext'
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
@@ -25,48 +25,52 @@ export function Card({
   onMouseLeave,
   ...rest
 }: CardProps) {
+  const { theme } = useTheme()
+
   const getVariantStyles = (): CSSProperties => {
     switch (variant) {
       case 'elevated':
         return {
-          backgroundColor: Colors.surfaceContainerLow,
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+          backgroundColor: theme.cardBg,
+          boxShadow: theme.cardShadow,
+          border: `1px solid ${theme.cardBorder}`,
         }
       case 'outlined':
         return {
-          backgroundColor: Colors.surfaceContainer,
-          border: `2px solid ${Colors.outlineVariant}`,
+          backgroundColor: theme.cardBg,
+          border: `1px solid ${theme.cardBorder}`,
         }
       default:
         return {
-          backgroundColor: Colors.surfaceContainer,
-          border: `1px solid ${Colors.outlineVariant}`,
+          backgroundColor: theme.cardBg,
+          border: `1px solid ${theme.cardBorder}`,
         }
     }
   }
 
   const cardStyle: CSSProperties = {
-    borderRadius: '16px',
+    borderRadius: '0px',
     padding,
     cursor: onClick ? 'pointer' : 'default',
-    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    transition: 'all 0.3s cubic-bezier(0.33, 1, 0.68, 1)',
     ...getVariantStyles(),
     ...style,
   }
 
   const titleStyle: CSSProperties = {
-    fontSize: '20px',
-    fontWeight: 700,
-    color: Colors.onSurface,
-    marginBottom: subtitle ? '6px' : '16px',
-    letterSpacing: '0.2px',
+    fontSize: '18px',
+    fontWeight: 600,
+    color: theme.text,
+    marginBottom: subtitle ? '4px' : '16px',
+    letterSpacing: '-0.01em',
+    fontFamily: "'Space Grotesk', system-ui, sans-serif",
   }
 
   const subtitleStyle: CSSProperties = {
-    fontSize: '14px',
-    color: Colors.onSurfaceVariant,
+    fontSize: '13px',
+    color: theme.textSecondary,
     marginBottom: '16px',
-    lineHeight: '1.5',
+    lineHeight: '1.6',
   }
 
   return (
@@ -74,17 +78,20 @@ export function Card({
       style={cardStyle}
       onClick={onClick}
       onMouseEnter={(e) => {
-        if (onClick && hoverable) {
-          e.currentTarget.style.transform = 'translateY(-3px)'
-          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08)'
+        if (hoverable) {
+          e.currentTarget.style.borderColor = theme.cardHoverBorder
+          if (onClick) {
+            e.currentTarget.style.transform = 'translateY(-2px)'
+            e.currentTarget.style.boxShadow = theme.cardHoverShadow
+          }
         }
         onMouseEnter?.(e)
       }}
       onMouseLeave={(e) => {
-        if (onClick && hoverable) {
+        if (hoverable) {
+          e.currentTarget.style.borderColor = theme.cardBorder
           e.currentTarget.style.transform = 'translateY(0)'
-          const variantStyles = getVariantStyles()
-          e.currentTarget.style.boxShadow = variantStyles.boxShadow || 'none'
+          e.currentTarget.style.boxShadow = getVariantStyles().boxShadow || 'none'
         }
         onMouseLeave?.(e)
       }}

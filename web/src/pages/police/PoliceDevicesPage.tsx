@@ -1,5 +1,5 @@
 import { CSSProperties, useEffect, useState } from 'react'
-import { Colors } from '../../lib/colors'
+import { useTheme } from '../../hooks/ThemeContext'
 import { supabase } from '../../lib/supabase'
 import { Card } from '../../components/Card'
 
@@ -28,6 +28,7 @@ type Device = {
 }
 
 export function PoliceDevicesPage() {
+  const { theme } = useTheme()
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'lost' | 'stolen'>('all')
@@ -108,7 +109,7 @@ export function PoliceDevicesPage() {
   const titleStyle: CSSProperties = {
     fontSize: '32px',
     fontWeight: 700,
-    color: Colors.onSurface,
+    color: theme.text,
     marginBottom: '16px',
     display: 'flex',
     alignItems: 'center',
@@ -129,9 +130,9 @@ export function PoliceDevicesPage() {
     alignItems: 'center',
     gap: '12px',
     padding: '12px 20px',
-    backgroundColor: Colors.surfaceContainerHigh,
-    border: `1px solid ${Colors.outlineVariant}`,
-    borderRadius: '12px',
+    backgroundColor: theme.bgSurfaceDim,
+    border: `1px solid ${theme.border}`,
+    borderRadius: '0px',
   }
 
   const searchInputStyle: CSSProperties = {
@@ -139,16 +140,16 @@ export function PoliceDevicesPage() {
     backgroundColor: 'transparent',
     border: 'none',
     outline: 'none',
-    fontSize: '15px',
-    color: Colors.onSurface,
+    fontSize: '14px',
+    color: theme.text,
   }
 
   const filterButtonStyle = (isActive: boolean): CSSProperties => ({
     padding: '10px 20px',
-    borderRadius: '10px',
-    backgroundColor: isActive ? Colors.primary : Colors.surfaceContainerHigh,
-    color: isActive ? Colors.onPrimary : Colors.onSurfaceVariant,
-    border: `1px solid ${isActive ? Colors.primary : Colors.outlineVariant}`,
+    borderRadius: '0px',
+    backgroundColor: isActive ? theme.text : theme.bgSurfaceDim,
+    color: isActive ? theme.textInverse : theme.textSecondary,
+    border: `1px solid ${isActive ? theme.text : theme.border}`,
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 600,
@@ -171,8 +172,8 @@ export function PoliceDevicesPage() {
     padding: '20px',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
-    border: `2px solid ${isSelected ? Colors.primary : Colors.outlineVariant}`,
-    backgroundColor: isSelected ? `${Colors.primary}08` : Colors.surfaceContainer,
+    border: `2px solid ${isSelected ? theme.text : theme.border}`,
+    backgroundColor: isSelected ? `${theme.text}08` : theme.bgSurface,
   })
 
   const detailsPanelStyle: CSSProperties = {
@@ -186,10 +187,10 @@ export function PoliceDevicesPage() {
   if (loading) {
     return (
       <div style={{ ...containerStyle, textAlign: 'center', paddingTop: '120px' }}>
-        <span className="material-icons" style={{ fontSize: '48px', color: Colors.primary, animation: 'spin 1s linear infinite' }}>
+        <span className="material-icons" style={{ fontSize: '48px', color: theme.text, animation: 'spin 1s linear infinite' }}>
           sync
         </span>
-        <p style={{ marginTop: '16px', color: Colors.onSurfaceVariant }}>Loading devices...</p>
+        <p style={{ marginTop: '16px', color: theme.textSecondary }}>Loading devices...</p>
       </div>
     )
   }
@@ -198,19 +199,19 @@ export function PoliceDevicesPage() {
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h1 style={titleStyle}>
-          <span className="material-icons" style={{ fontSize: '40px', color: Colors.error }}>
+          <span className="material-icons" style={{ fontSize: '40px', color: theme.error }}>
             devices
           </span>
           Lost & Stolen Devices
         </h1>
-        <p style={{ fontSize: '15px', color: Colors.onSurfaceVariant }}>
+        <p style={{ fontSize: '14px', color: theme.textSecondary }}>
           Tracking {filteredDevices.length} device{filteredDevices.length !== 1 ? 's' : ''}
         </p>
       </div>
 
       <div style={toolbarStyle}>
         <div style={searchBarStyle}>
-          <span className="material-icons" style={{ color: Colors.outline, fontSize: '22px' }}>
+          <span className="material-icons" style={{ color: theme.textTertiary, fontSize: '22px' }}>
             search
           </span>
           <input
@@ -223,7 +224,7 @@ export function PoliceDevicesPage() {
           {searchQuery && (
             <span 
               className="material-icons" 
-              style={{ color: Colors.outline, fontSize: '20px', cursor: 'pointer' }}
+              style={{ color: theme.textTertiary, fontSize: '20px', cursor: 'pointer' }}
               onClick={() => setSearchQuery('')}
             >
               close
@@ -255,11 +256,11 @@ export function PoliceDevicesPage() {
         <div style={devicesListStyle}>
           {filteredDevices.length === 0 ? (
             <Card style={{ padding: '60px', textAlign: 'center' }}>
-              <span className="material-icons" style={{ fontSize: '64px', color: Colors.outline, marginBottom: '16px' }}>
+              <span className="material-icons" style={{ fontSize: '64px', color: theme.textTertiary, marginBottom: '16px' }}>
                 search_off
               </span>
-              <h2 style={{ color: Colors.onSurface, marginBottom: '8px' }}>No devices found</h2>
-              <p style={{ color: Colors.onSurfaceVariant }}>
+              <h2 style={{ color: theme.text, marginBottom: '8px' }}>No devices found</h2>
+              <p style={{ color: theme.textSecondary }}>
                 {searchQuery ? 'Try adjusting your search terms' : 'No lost or stolen devices reported'}
               </p>
             </Card>
@@ -276,10 +277,10 @@ export function PoliceDevicesPage() {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
                     <div>
-                      <h3 style={{ fontSize: '20px', fontWeight: 600, color: Colors.onSurface, marginBottom: '4px' }}>
+                      <h3 style={{ fontSize: '20px', fontWeight: 600, color: theme.text, marginBottom: '4px' }}>
                         {device.make} {device.model}
                       </h3>
-                      <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant }}>
+                      <div style={{ fontSize: '14px', color: theme.textSecondary }}>
                         <span className="material-icons" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '6px' }}>
                           person
                         </span>
@@ -289,9 +290,9 @@ export function PoliceDevicesPage() {
                     <span
                       style={{
                         padding: '6px 14px',
-                        borderRadius: '8px',
-                        backgroundColor: device.status === 'stolen' ? `${Colors.error}20` : `${Colors.tertiary}20`,
-                        color: device.status === 'stolen' ? Colors.error : Colors.tertiary,
+                        borderRadius: '0px',
+                        backgroundColor: device.status === 'stolen' ? `${theme.error}20` : `${theme.textSecondary}20`,
+                        color: device.status === 'stolen' ? theme.error : theme.textSecondary,
                         fontSize: '12px',
                         fontWeight: 700,
                         textTransform: 'uppercase',
@@ -303,14 +304,14 @@ export function PoliceDevicesPage() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                     <div style={{ fontSize: '13px' }}>
-                      <div style={{ color: Colors.outline, marginBottom: '4px' }}>IMEI</div>
-                      <div style={{ color: Colors.onSurface, fontWeight: 500, fontFamily: 'monospace' }}>
+                      <div style={{ color: theme.textTertiary, marginBottom: '4px' }}>IMEI</div>
+                      <div style={{ color: theme.text, fontWeight: 500, fontFamily: 'monospace' }}>
                         {device.imei_primary}
                       </div>
                     </div>
                     <div style={{ fontSize: '13px' }}>
-                      <div style={{ color: Colors.outline, marginBottom: '4px' }}>Serial Number</div>
-                      <div style={{ color: Colors.onSurface, fontWeight: 500, fontFamily: 'monospace' }}>
+                      <div style={{ color: theme.textTertiary, marginBottom: '4px' }}>Serial Number</div>
+                      <div style={{ color: theme.text, fontWeight: 500, fontFamily: 'monospace' }}>
                         {device.serial_number}
                       </div>
                     </div>
@@ -319,20 +320,20 @@ export function PoliceDevicesPage() {
                   {report?.police_complaint_number && (
                     <div style={{ 
                       padding: '10px 14px', 
-                      backgroundColor: Colors.surfaceContainerHigh, 
-                      borderRadius: '8px',
+                      backgroundColor: theme.bgSurfaceDim, 
+                      borderRadius: '0px',
                       marginBottom: '12px'
                     }}>
-                      <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '4px' }}>
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '4px' }}>
                         Police Complaint Number
                       </div>
-                      <div style={{ fontSize: '14px', color: Colors.onSurface, fontWeight: 600 }}>
+                      <div style={{ fontSize: '14px', color: theme.text, fontWeight: 600 }}>
                         {report.police_complaint_number}
                       </div>
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${Colors.outlineVariant}` }}>
+                  <div style={{ display: 'flex', gap: '12px', marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${theme.border}` }}>
                     {hasLocation && (
                       <button
                         onClick={(e) => {
@@ -342,10 +343,10 @@ export function PoliceDevicesPage() {
                         style={{
                           flex: 1,
                           padding: '10px 16px',
-                          backgroundColor: Colors.secondary,
-                          color: Colors.onPrimary,
+                          backgroundColor: theme.text,
+                          color: theme.textInverse,
                           border: 'none',
-                          borderRadius: '10px',
+                          borderRadius: '0px',
                           cursor: 'pointer',
                           fontSize: '14px',
                           fontWeight: 600,
@@ -366,10 +367,10 @@ export function PoliceDevicesPage() {
                         style={{
                           flex: 1,
                           padding: '10px 16px',
-                          backgroundColor: Colors.primary,
-                          color: Colors.onPrimary,
+                          backgroundColor: theme.text,
+                          color: theme.textInverse,
                           border: 'none',
-                          borderRadius: '10px',
+                          borderRadius: '0px',
                           cursor: 'pointer',
                           fontSize: '14px',
                           fontWeight: 600,
@@ -387,7 +388,7 @@ export function PoliceDevicesPage() {
                   </div>
 
                   {device.last_seen_at && (
-                    <div style={{ fontSize: '12px', color: Colors.outline, marginTop: '12px' }}>
+                    <div style={{ fontSize: '12px', color: theme.textTertiary, marginTop: '12px' }}>
                       Last seen: {new Date(device.last_seen_at).toLocaleString()}
                     </div>
                   )}
@@ -401,7 +402,7 @@ export function PoliceDevicesPage() {
           <Card style={detailsPanelStyle}>
             <div style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: 700, color: Colors.onSurface }}>
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: theme.text }}>
                   Device Details
                 </h2>
                 <button
@@ -409,7 +410,7 @@ export function PoliceDevicesPage() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: Colors.onSurfaceVariant,
+                    color: theme.textSecondary,
                     cursor: 'pointer',
                     padding: '4px',
                   }}
@@ -420,34 +421,34 @@ export function PoliceDevicesPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                  <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '6px', textTransform: 'uppercase', fontWeight: 600 }}>
                     Device Information
                   </div>
-                  <div style={{ fontSize: '18px', fontWeight: 600, color: Colors.onSurface, marginBottom: '8px' }}>
+                  <div style={{ fontSize: '18px', fontWeight: 600, color: theme.text, marginBottom: '8px' }}>
                     {selectedDevice.make} {selectedDevice.model}
                   </div>
-                  <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant }}>
-                    Status: <span style={{ fontWeight: 600, color: selectedDevice.status === 'stolen' ? Colors.error : Colors.tertiary }}>
+                  <div style={{ fontSize: '14px', color: theme.textSecondary }}>
+                    Status: <span style={{ fontWeight: 600, color: selectedDevice.status === 'stolen' ? theme.error : theme.textSecondary }}>
                       {selectedDevice.status.toUpperCase()}
                     </span>
                   </div>
                 </div>
 
-                <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                <div style={{ height: '1px', backgroundColor: theme.border }} />
 
                 <div>
-                  <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                     Owner Information
                   </div>
-                  <div style={{ fontSize: '15px', color: Colors.onSurface, marginBottom: '6px' }}>
-                    <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: Colors.primary }}>
+                  <div style={{ fontSize: '14px', color: theme.text, marginBottom: '6px' }}>
+                    <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: theme.text }}>
                       person
                     </span>
                     {selectedDevice.profiles?.full_name || 'Unknown'}
                   </div>
                   {selectedDevice.profiles?.phone_number && (
-                    <div style={{ fontSize: '15px', color: Colors.onSurface }}>
-                      <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: Colors.primary }}>
+                    <div style={{ fontSize: '14px', color: theme.text }}>
+                      <span className="material-icons" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '8px', color: theme.text }}>
                         phone
                       </span>
                       {selectedDevice.profiles.phone_number}
@@ -455,21 +456,21 @@ export function PoliceDevicesPage() {
                   )}
                 </div>
 
-                <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                <div style={{ height: '1px', backgroundColor: theme.border }} />
 
                 <div>
-                  <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                     Identifiers
                   </div>
                   <div style={{ marginBottom: '8px' }}>
-                    <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '4px' }}>IMEI Number</div>
-                    <div style={{ fontSize: '14px', color: Colors.onSurface, fontWeight: 500, fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '4px' }}>IMEI Number</div>
+                    <div style={{ fontSize: '14px', color: theme.text, fontWeight: 500, fontFamily: 'monospace' }}>
                       {selectedDevice.imei_primary}
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '4px' }}>Serial Number</div>
-                    <div style={{ fontSize: '14px', color: Colors.onSurface, fontWeight: 500, fontFamily: 'monospace' }}>
+                    <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '4px' }}>Serial Number</div>
+                    <div style={{ fontSize: '14px', color: theme.text, fontWeight: 500, fontFamily: 'monospace' }}>
                       {selectedDevice.serial_number}
                     </div>
                   </div>
@@ -477,38 +478,38 @@ export function PoliceDevicesPage() {
 
                 {selectedDevice.lost_reports[0] && (
                   <>
-                    <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                    <div style={{ height: '1px', backgroundColor: theme.border }} />
                     <div>
-                      <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                         Report Information
                       </div>
                       {selectedDevice.lost_reports[0].police_complaint_number && (
                         <div style={{ marginBottom: '8px' }}>
-                          <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '4px' }}>Complaint Number</div>
-                          <div style={{ fontSize: '15px', color: Colors.primary, fontWeight: 600 }}>
+                          <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '4px' }}>Complaint Number</div>
+                          <div style={{ fontSize: '14px', color: theme.text, fontWeight: 600 }}>
                             {selectedDevice.lost_reports[0].police_complaint_number}
                           </div>
                         </div>
                       )}
                       {selectedDevice.lost_reports[0].reward_amount && (
                         <div style={{ marginBottom: '8px' }}>
-                          <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '4px' }}>Reward Amount</div>
-                          <div style={{ fontSize: '15px', color: Colors.secondary, fontWeight: 600 }}>
+                          <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '4px' }}>Reward Amount</div>
+                          <div style={{ fontSize: '14px', color: theme.text, fontWeight: 600 }}>
                             ₹{selectedDevice.lost_reports[0].reward_amount.toLocaleString()}
                           </div>
                         </div>
                       )}
                       {selectedDevice.lost_reports[0].last_known_address && (
                         <div>
-                          <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '4px' }}>Last Known Location</div>
-                          <div style={{ fontSize: '14px', color: Colors.onSurface }}>
+                          <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '4px' }}>Last Known Location</div>
+                          <div style={{ fontSize: '14px', color: theme.text }}>
                             {selectedDevice.lost_reports[0].last_known_address}
                           </div>
                         </div>
                       )}
                       <div style={{ marginTop: '8px' }}>
-                        <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '4px' }}>Reported At</div>
-                        <div style={{ fontSize: '14px', color: Colors.onSurface }}>
+                        <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '4px' }}>Reported At</div>
+                        <div style={{ fontSize: '14px', color: theme.text }}>
                           {new Date(selectedDevice.lost_reports[0].reported_at).toLocaleString()}
                         </div>
                       </div>
@@ -518,9 +519,9 @@ export function PoliceDevicesPage() {
 
                 {(selectedDevice.last_seen_lat && selectedDevice.last_seen_lng) && (
                   <>
-                    <div style={{ height: '1px', backgroundColor: Colors.outlineVariant }} />
+                    <div style={{ height: '1px', backgroundColor: theme.border }} />
                     <div>
-                      <div style={{ fontSize: '12px', color: Colors.outline, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
                         Location Tracking
                       </div>
                       <button
@@ -528,12 +529,12 @@ export function PoliceDevicesPage() {
                         style={{
                           width: '100%',
                           padding: '14px',
-                          backgroundColor: Colors.secondary,
-                          color: Colors.onPrimary,
+                          backgroundColor: theme.text,
+                          color: theme.textInverse,
                           border: 'none',
-                          borderRadius: '12px',
+                          borderRadius: '0px',
                           cursor: 'pointer',
-                          fontSize: '15px',
+                          fontSize: '14px',
                           fontWeight: 600,
                           display: 'flex',
                           alignItems: 'center',
@@ -545,7 +546,7 @@ export function PoliceDevicesPage() {
                         Open in Google Maps
                       </button>
                       {selectedDevice.last_seen_at && (
-                        <div style={{ fontSize: '12px', color: Colors.outline, marginTop: '8px', textAlign: 'center' }}>
+                        <div style={{ fontSize: '12px', color: theme.textTertiary, marginTop: '8px', textAlign: 'center' }}>
                           Last seen: {new Date(selectedDevice.last_seen_at).toLocaleString()}
                         </div>
                       )}

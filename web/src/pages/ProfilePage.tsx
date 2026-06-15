@@ -1,8 +1,8 @@
 import { CSSProperties, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Colors } from '../lib/colors'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../hooks/ThemeContext'
 import { useDevices } from '../hooks/useDevices'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
@@ -17,6 +17,7 @@ function daysSince(dateIso?: string) {
 export function ProfilePage() {
   const navigate = useNavigate()
   const { profile, user, signOut, refreshProfile } = useAuth()
+  const { theme } = useTheme()
   const { devices } = useDevices()
   const [reportsCount, setReportsCount] = useState(0)
   
@@ -97,7 +98,7 @@ export function ProfilePage() {
 
   const handleSignOut = async () => {
     await signOut()
-    navigate('/login')
+    window.location.href = '/login'
   }
 
   const containerStyle: CSSProperties = {
@@ -106,110 +107,23 @@ export function ProfilePage() {
     margin: '0 auto',
   }
 
-  const headerStyle: CSSProperties = {
-    textAlign: 'center',
-    marginBottom: '48px',
-    background: `linear-gradient(135deg, ${Colors.primary}15 0%, transparent 100%)`,
-    padding: '48px 32px',
-    borderRadius: '24px',
-    border: `1px solid ${Colors.primary}20`,
-  }
-
-  const avatarContainerStyle: CSSProperties = {
-    width: '120px',
-    height: '120px',
-    borderRadius: '50%',
-    background: `linear-gradient(135deg, ${Colors.primary} 0%, ${Colors.secondary} 100%)`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 24px',
-    fontSize: '54px',
-    fontWeight: 800,
-    color: Colors.onPrimary,
-    border: `4px solid ${Colors.surfaceContainer}`,
-    boxShadow: `0 8px 24px ${Colors.primary}40`,
-    letterSpacing: '1px',
-  }
-
-  const nameStyle: CSSProperties = {
-    fontSize: '36px',
-    fontWeight: 700,
-    color: Colors.onSurface,
-    marginBottom: '8px',
-    letterSpacing: '-0.5px',
-  }
-
-  const emailStyle: CSSProperties = {
-    fontSize: '16px',
-    color: Colors.onSurfaceVariant,
-    marginBottom: '4px',
-  }
-
-  const memberSinceStyle: CSSProperties = {
-    fontSize: '14px',
-    color: Colors.onSurfaceVariant,
-    fontWeight: 500,
-  }
-
-  const gridStyle: CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-    gap: '24px',
-    marginBottom: '48px',
-  }
-
-  const statCardStyle: CSSProperties = {
-    textAlign: 'center',
-    padding: '32px 24px',
-  }
-
-  const statIconStyle = (color: string): CSSProperties => ({
-    width: '64px',
-    height: '64px',
-    borderRadius: '16px',
-    background: `linear-gradient(135deg, ${color}30 0%, ${color}10 100%)`,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 16px',
-    border: `2px solid ${color}40`,
-  })
-
-  const statValueStyle: CSSProperties = {
-    fontSize: '48px',
-    fontWeight: 800,
-    color: Colors.onSurface,
-    marginBottom: '8px',
-    letterSpacing: '-1.5px',
-  }
-
-  const statLabelStyle: CSSProperties = {
-    fontSize: '15px',
-    color: Colors.onSurfaceVariant,
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  }
-
   const sectionTitleStyle: CSSProperties = {
-    fontSize: '24px',
-    fontWeight: 700,
-    color: Colors.onSurface,
-    marginBottom: '24px',
-    letterSpacing: '-0.3px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
+    fontSize: '11px',
+    fontWeight: 500,
+    color: theme.textTertiary,
+    marginBottom: '16px',
+    letterSpacing: '0.2em',
+    textTransform: 'uppercase',
+    fontFamily: "'JetBrains Mono', monospace",
   }
 
   const messageStyle: CSSProperties = {
     padding: '16px 20px',
-    borderRadius: '12px',
+    borderRadius: '0px',
     marginBottom: '20px',
-    backgroundColor: message.type === 'error' ? `${Colors.error}20` : `${Colors.tertiary}20`,
-    color: message.type === 'error' ? Colors.error : Colors.tertiary,
-    border: `2px solid ${message.type === 'error' ? Colors.error : Colors.tertiary}40`,
+    backgroundColor: message.type === 'error' ? theme.errorBg : theme.bgSurfaceDim,
+    color: message.type === 'error' ? theme.error : theme.text,
+    border: `2px solid ${message.type === 'error' ? theme.errorBorder : theme.border}`,
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
@@ -225,53 +139,41 @@ export function ProfilePage() {
 
   return (
     <div style={containerStyle}>
-      <header style={headerStyle}>
-        <div style={avatarContainerStyle}>{getInitials()}</div>
-        <h1 style={nameStyle}>{profile?.full_name || 'User'}</h1>
-        <p style={emailStyle}>{user?.email}</p>
-        <p style={memberSinceStyle}>
+      <header style={{ textAlign: 'center', marginBottom: '48px' }}>
+        <div style={{
+          width: '100px', height: '100px', backgroundColor: theme.primary,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px', fontSize: '36px', fontWeight: 700,
+          color: theme.textInverse, fontFamily: "'Space Grotesk', system-ui, sans-serif", letterSpacing: '0.05em',
+        }}>
+          {getInitials()}
+        </div>
+        <h1 style={{ fontSize: '28px', fontWeight: 600, color: theme.text, marginBottom: '4px', fontFamily: "'Space Grotesk', system-ui, sans-serif", letterSpacing: '-0.02em' }}>
+          {profile?.full_name || 'User'}
+        </h1>
+        <p style={{ fontSize: '16px', color: theme.textSecondary, marginBottom: '4px' }}>{user?.email}</p>
+        <p style={{ fontSize: '14px', color: theme.textSecondary, fontWeight: 500 }}>
           Member for {daysSince(profile?.created_at)} days
         </p>
       </header>
 
-      <div style={gridStyle}>
-        <Card variant="elevated" style={statCardStyle}>
-          <div style={statIconStyle(Colors.primary)}>
-            <span className="material-icons" style={{ fontSize: '32px', color: Colors.primary }}>
-              devices
-            </span>
-          </div>
-          <div style={statValueStyle}>{devices.length}</div>
-          <div style={statLabelStyle}>Devices</div>
-        </Card>
-
-        <Card variant="elevated" style={statCardStyle}>
-          <div style={statIconStyle(Colors.error)}>
-            <span className="material-icons" style={{ fontSize: '32px', color: Colors.error }}>
-              report
-            </span>
-          </div>
-          <div style={statValueStyle}>{reportsCount}</div>
-          <div style={statLabelStyle}>Reports</div>
-        </Card>
-
-        <Card variant="elevated" style={statCardStyle}>
-          <div style={statIconStyle(Colors.secondary)}>
-            <span className="material-icons" style={{ fontSize: '32px', color: Colors.secondary }}>
-              verified
-            </span>
-          </div>
-          <div style={statValueStyle}>{devices.filter(d => d.status === 'registered').length}</div>
-          <div style={statLabelStyle}>Protected</div>
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '48px' }}>
+        {[
+          { icon: 'devices', value: devices.length, label: 'Devices' },
+          { icon: 'report', value: reportsCount, label: 'Reports' },
+          { icon: 'verified', value: devices.filter(d => d.status === 'registered').length, label: 'Protected' },
+        ].map((stat, i) => (
+          <Card key={i} variant="elevated" style={{ textAlign: 'center', padding: '32px 24px' }}>
+            <div style={{ width: '48px', height: '48px', backgroundColor: theme.bgSurfaceDim, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', border: `1px solid ${theme.border}` }}>
+              <span className="material-icons" style={{ fontSize: '24px', color: theme.text }}>{stat.icon}</span>
+            </div>
+            <div style={{ fontSize: '36px', fontWeight: 600, color: theme.text, marginBottom: '4px', fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>{stat.value}</div>
+            <div style={{ fontSize: '11px', color: theme.textSecondary, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.15em', fontFamily: "'JetBrains Mono', monospace" }}>{stat.label}</div>
+          </Card>
+        ))}
       </div>
 
-      <h2 style={sectionTitleStyle}>
-        <span className="material-icons" style={{ fontSize: '28px', color: Colors.primary }}>
-          account_circle
-        </span>
-        Profile Information
-      </h2>
+      <h2 style={sectionTitleStyle}>[ Profile Information ]</h2>
       <Card variant="elevated" style={{ marginBottom: '32px', padding: '32px' }}>
         {message.text && (
           <div style={messageStyle}>
@@ -284,116 +186,52 @@ export function ProfilePage() {
 
         {isEditing ? (
           <form onSubmit={handleUpdateProfile}>
-            <Input
-              label="Full Name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              style={{ marginBottom: '20px' }}
-            />
-            <Input
-              label="Phone Number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Optional"
-              style={{ marginBottom: '24px' }}
-            />
+            <Input label="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} required style={{ marginBottom: '20px' }} />
+            <Input label="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Optional" style={{ marginBottom: '24px' }} />
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button type="submit" loading={loading} icon="save" fullWidth>
-                Save Changes
-              </Button>
-              <Button variant="ghost" onClick={() => setIsEditing(false)} style={{ border: `2px solid ${Colors.outlineVariant}` }}>
-                Cancel
-              </Button>
+              <Button type="submit" loading={loading} icon="save" fullWidth>Save Changes</Button>
+              <Button variant="ghost" onClick={() => setIsEditing(false)} style={{ border: `2px solid ${theme.border}` }}>Cancel</Button>
             </div>
           </form>
         ) : (
           <>
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Full Name
+            {[
+              ['Full Name', profile?.full_name || '—'],
+              ['Email', user?.email || '—'],
+              ['Phone', profile?.phone_number || '—'],
+            ].map(([label, value]) => (
+              <div key={label} style={{ marginBottom: '24px' }}>
+                <div style={{ fontSize: '14px', color: theme.textSecondary, marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+                <div style={{ fontSize: '18px', color: theme.text, fontWeight: 600 }}>{value}</div>
               </div>
-              <div style={{ fontSize: '18px', color: Colors.onSurface, fontWeight: 600 }}>
-                {profile?.full_name || '—'}
-              </div>
-            </div>
-            <div style={{ marginBottom: '24px' }}>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Email
-              </div>
-              <div style={{ fontSize: '18px', color: Colors.onSurface, fontWeight: 600 }}>
-                {user?.email || '—'}
-              </div>
-            </div>
-            <div style={{ marginBottom: '32px' }}>
-              <div style={{ fontSize: '14px', color: Colors.onSurfaceVariant, marginBottom: '8px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Phone
-              </div>
-              <div style={{ fontSize: '18px', color: Colors.onSurface, fontWeight: 600 }}>
-                {profile?.phone_number || '—'}
-              </div>
-            </div>
-            <Button onClick={() => setIsEditing(true)} icon="edit" fullWidth>
-              Edit Profile
-            </Button>
+            ))}
+            <Button onClick={() => setIsEditing(true)} icon="edit" fullWidth>Edit Profile</Button>
           </>
         )}
       </Card>
 
-      <h2 style={sectionTitleStyle}>
-        <span className="material-icons" style={{ fontSize: '28px', color: Colors.error }}>
-          lock
-        </span>
-        Security
-      </h2>
+      <h2 style={sectionTitleStyle}>[ Security ]</h2>
       <Card variant="elevated" style={{ marginBottom: '32px', padding: '32px' }}>
         {isChangingPassword ? (
           <form onSubmit={handleChangePassword}>
-            <Input
-              label="New Password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              style={{ marginBottom: '20px' }}
-            />
-            <Input
-              label="Confirm Password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              style={{ marginBottom: '24px' }}
-            />
+            <Input label="New Password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required style={{ marginBottom: '20px' }} />
+            <Input label="Confirm Password" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required style={{ marginBottom: '24px' }} />
             <div style={{ display: 'flex', gap: '12px' }}>
-              <Button type="submit" loading={loading} variant="danger" icon="lock" fullWidth>
-                Update Password
-              </Button>
-              <Button variant="ghost" onClick={() => setIsChangingPassword(false)} style={{ border: `2px solid ${Colors.outlineVariant}` }}>
-                Cancel
-              </Button>
+              <Button type="submit" loading={loading} variant="danger" icon="lock" fullWidth>Update Password</Button>
+              <Button variant="ghost" onClick={() => setIsChangingPassword(false)} style={{ border: `2px solid ${theme.border}` }}>Cancel</Button>
             </div>
           </form>
         ) : (
-          <Button onClick={() => setIsChangingPassword(true)} icon="lock" fullWidth>
-            Change Password
-          </Button>
+          <Button onClick={() => setIsChangingPassword(true)} icon="lock" fullWidth>Change Password</Button>
         )}
       </Card>
 
-      <h2 style={sectionTitleStyle}>
-        <span className="material-icons" style={{ fontSize: '28px', color: Colors.error }}>
-          power_settings_new
-        </span>
-        Account Actions
-      </h2>
+      <h2 style={sectionTitleStyle}>[ Account Actions ]</h2>
       <Card variant="elevated" style={{ padding: '32px' }}>
-        <p style={{ color: Colors.onSurfaceVariant, marginBottom: '24px', fontSize: '15px', lineHeight: '1.6' }}>
+        <p style={{ color: theme.textSecondary, marginBottom: '24px', fontSize: '14px', lineHeight: '1.6' }}>
           Sign out of your account. You can always sign back in later.
         </p>
-        <Button onClick={handleSignOut} variant="danger" icon="logout" fullWidth>
-          Sign Out
-        </Button>
+        <Button onClick={handleSignOut} variant="danger" icon="logout" fullWidth>Sign Out</Button>
       </Card>
     </div>
   )
