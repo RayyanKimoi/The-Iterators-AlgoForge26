@@ -12,10 +12,10 @@ SET search_path = public
 AS $$
 BEGIN
   PERFORM net.http_post(
-    url := 'https://xeykhdyanzjkymlfwseo.supabase.co/functions/v1/generate-device-key',
+    url := 'https://jqsrzmyoysvzuyqwtown.supabase.co/functions/v1/generate-device-key',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleWtoZHlhbnpqa3ltbGZ3c2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MzM1NjIsImV4cCI6MjA5MDEwOTU2Mn0.XSkxceiFbDqODroiNIcN7tu9yJcaAGk8UmdCUVdrC3o'
+      'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impxc3J6bXlveXN2enV5cXd0b3duIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MjY2NzUsImV4cCI6MjA5MDEwMjY3NX0.mADftTxPnvDD0N4ncVKV3WnVHhp7_imUDwRzZUBaBsI'
     ),
     body := jsonb_build_object(
       'type', 'INSERT',

@@ -1,0 +1,56 @@
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m292[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m3000[22m/[39m
+[2m12:56:16 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/hooks/useAuth.tsx, /src/components/Sidebar.tsx, /src/pages/police/PoliceDashboardPage.tsx, /src/pages/AlertsPage.tsx, /src/components/police/PoliceSidebar.tsx, /src/pages/ChatRoomPage.tsx, /src/pages/LoginPage.tsx, /src/pages/ChatListPage.tsx, /src/pages/police/PoliceSearchPage.tsx, /src/pages/police/PoliceAnalyticsPage.tsx, /src/pages/ProfilePage.tsx, /src/pages/police/PoliceReportsPage.tsx, /src/pages/police/PoliceChatsPage.tsx, /src/pages/police/PoliceDevicesPage.tsx, /src/pages/HomePage.tsx, /src/pages/DevicesPage.tsx, /src/pages/AddDevicePage.tsx[22m
+[2m12:56:16 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/hooks/useAuth.tsx[22m
+[2m12:56:16 am[22m [36m[1m[vite][22m[39m [33mhmr invalidate [39m[2m/src/hooks/useAuth.tsx[22m Could not Fast Refresh ("useAuth" export is incompatible). Learn more at https://github.com/vitejs/vite-plugin-react/tree/main/packages/plugin-react#consistent-components-exports
+[2m12:56:16 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/pages/HomePage.tsx, /src/components/Sidebar.tsx, /src/pages/AlertsPage.tsx, /src/components/police/PoliceSidebar.tsx, /src/pages/ChatRoomPage.tsx, /src/pages/LoginPage.tsx, /src/pages/ChatListPage.tsx, /src/pages/ProfilePage.tsx, /src/pages/DevicesPage.tsx, /src/pages/AddDevicePage.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mindex.html[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Button.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Card.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Input.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Sidebar.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Sidebar.tsx, /src/pages/HomePage.tsx, /src/pages/AlertsPage.tsx, /src/pages/ReportBugPage.tsx, /src/pages/ChatRoomPage.tsx, /src/pages/LoginPage.tsx, /src/pages/police/PoliceSearchPage.tsx, /src/pages/ProfilePage.tsx, /src/pages/police/PoliceReportsPage.tsx, /src/pages/police/PoliceChatsPage.tsx, /src/pages/DevicesPage.tsx, /src/pages/AddDevicePage.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/components/landing/Accents.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/AboutPage.tsx, /src/pages/HomePage.tsx, /src/pages/police/PoliceDashboardPage.tsx, /src/pages/AlertsPage.tsx, /src/pages/ReportBugPage.tsx, /src/pages/ChatRoomPage.tsx, /src/pages/ChatListPage.tsx, /src/pages/police/PoliceSearchPage.tsx, /src/pages/PrivacyPolicyPage.tsx, /src/pages/police/PoliceAnalyticsPage.tsx, /src/pages/ProfilePage.tsx, /src/pages/police/PoliceReportsPage.tsx, /src/pages/police/PoliceChatsPage.tsx, /src/pages/DevicesPage.tsx, /src/pages/police/PoliceDevicesPage.tsx, /src/pages/AddDevicePage.tsx, /src/pages/LoginPage.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/police/PoliceSidebar.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ReportBugPage.tsx, /src/pages/LoginPage.tsx, /src/pages/police/PoliceSearchPage.tsx, /src/pages/ProfilePage.tsx, /src/pages/AddDevicePage.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/hooks/useAuth.tsx[22m
+[2m12:56:17 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx, /src/pages/ProfilePage.tsx, /src/pages/DevicesPage.tsx, /src/pages/AddDevicePage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ReportBugPage.tsx, /src/pages/LoginPage.tsx, /src/pages/police/PoliceSearchPage.tsx, /src/pages/ProfilePage.tsx, /src/pages/AddDevicePage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/lib/colors.ts[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/main.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/AboutPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/AlertsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/main.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/AddDevicePage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ChatListPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ChatRoomPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/DevicesPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/DevicesPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/AboutPage.tsx, /src/pages/ReportBugPage.tsx, /src/pages/LoginPage.tsx, /src/pages/police/PoliceSearchPage.tsx, /src/pages/ProfilePage.tsx, /src/pages/AddDevicePage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/AlertsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/HomePage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/LoginPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/PrivacyPolicyPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ProfilePage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/DevicesPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceAnalyticsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/ReportBugPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/PrivacyPolicyPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceChatsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/PrivacyPolicyPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceDashboardPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceDevicesPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceChatsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceReportsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceSearchPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/styles/global.ts[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m changed tsconfig file detected: F:\The-Iterators-AlgoForge26\web\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceChatsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceReportsPage.tsx[22m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mvite.config.ts changed, restarting server...[39m
+[2m12:56:18 am[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/police/PoliceSearchPage.tsx[22m
+[2m1:08:58 am[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mvite.config.ts.timestamp-1781552338477-04bc514b9d539.mjs[22m

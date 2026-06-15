@@ -1,0 +1,213 @@
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "./hooks/ThemeContext" from "src/App.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/The-Iterators-AlgoForge26/web/src/App.tsx[39m:4:40
+[33m  18 |  import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+  19 |  import { AuthProvider, useAuth } from "./hooks/useAuth";
+  20 |  import { ThemeProvider, useTheme } from "./hooks/ThemeContext";
+     |                                           ^
+  21 |  import { globalStyles } from "./styles/global";
+  22 |  import { Sidebar } from "./components/Sidebar";[39m
+      at TransformPluginContext._formatError (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/The-Iterators-AlgoForge26/web/src/components/Button.tsx[39m:2:25
+[33m  16 |  }
+  17 |  var _s = $RefreshSig$();
+  18 |  import { useTheme } from "../hooks/ThemeContext";
+     |                            ^
+  19 |  export function Button({
+  20 |    children,[39m
+      at TransformPluginContext._formatError (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 3)
+      at async TransformPluginContext.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/The-Iterators-AlgoForge26/web/src/components/Card.tsx[39m:2:25
+[33m  16 |  }
+  17 |  var _s = $RefreshSig$();
+  18 |  import { useTheme } from "../hooks/ThemeContext";
+     |                            ^
+  19 |  export function Card({
+  20 |    children,[39m
+      at TransformPluginContext._formatError (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 3)
+      at async TransformPluginContext.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Input.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/The-Iterators-AlgoForge26/web/src/components/Input.tsx[39m:3:25
+[33m  18 |  import { useState } from "react";
+  19 |  import { Eye, EyeOff } from "lucide-react";
+  20 |  import { useTheme } from "../hooks/ThemeContext";
+     |                            ^
+  21 |  export function Input({
+  22 |    label,[39m
+      at TransformPluginContext._formatError (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 5)
+      at async TransformPluginContext.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Sidebar.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/The-Iterators-AlgoForge26/web/src/components/Sidebar.tsx[39m:4:25
+[33m  19 |  import { useNavigate, useLocation } from "react-router-dom";
+  20 |  import { useAuth } from "../hooks/useAuth";
+  21 |  import { useTheme } from "../hooks/ThemeContext";
+     |                            ^
+  22 |  import { supabase } from "../lib/supabase";
+  23 |  import { Shield, Sun, Moon } from "lucide-react";[39m
+      at TransformPluginContext._formatError (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Sidebar.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/The-Iterators-AlgoForge26/web/src/components/Sidebar.tsx[39m:4:25
+[33m  19 |  import { useNavigate, useLocation } from "react-router-dom";
+  20 |  import { useAuth } from "../hooks/useAuth";
+  21 |  import { useTheme } from "../hooks/ThemeContext";
+     |                            ^
+  22 |  import { supabase } from "../lib/supabase";
+  23 |  import { Shield, Sun, Moon } from "lucide-react";[39m
+      at TransformPluginContext._formatError (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 6)
+      at async TransformPluginContext.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Card.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "../hooks/ThemeContext" from "src/components/Button.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:17 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m [31mInternal server error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?[39m
+  Plugin: [35mvite:import-analysis[39m
+  File: [36mF:/The-Iterators-AlgoForge26/web/src/components/Input.tsx[39m:2:28
+[33m  17 |  var _s = $RefreshSig$();
+  18 |  import { useState } from "react";
+  19 |  import { Eye, EyeOff } from "lucide-react";
+     |                               ^
+  20 |  import { useTheme } from "../hooks/ThemeContext";
+  21 |  export function Input({[39m
+      at TransformPluginContext._formatError (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49258:41)
+      at TransformPluginContext.error (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49253:16)
+      at normalizeUrl (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64307:23)
+      at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at async file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64439:39
+      at async Promise.all (index 4)
+      at async TransformPluginContext.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:64366:7)
+      at async PluginContainer.transform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:49099:18)
+      at async loadAndTransform (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51978:27)
+      at async viteTransformMiddleware (file:///F:/The-Iterators-AlgoForge26/web/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:62106:24)
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[31mfailed to load config from F:\The-Iterators-AlgoForge26\web\vite.config.ts[39m
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Cannot find package '@tailwindcss/vite' imported from F:\The-Iterators-AlgoForge26\web\vite.config.ts.timestamp-1781551578374-af6b774690393.mjs
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m server restart failed
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/pages/LandingPage.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Sidebar.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/police/PoliceSidebar.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/pages/LoginPage.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/components/landing/CustomCursor.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/components/landing/CustomCursor.tsx". Does the file exist?
+[2m12:56:18 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/components/landing/CustomCursor.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "lucide-react" from "src/components/Input.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/GridRuler.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/Navbar.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/components/landing/WireframeMesh.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/Footer.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/components/landing/WireframeMesh.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/CTA.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/Stats.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/BentoGrid.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/components/landing/Hero.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/HowItWorks.tsx". Does the file exist?
+[31mUnable to resolve `@import "tailwindcss"` from F:/The-Iterators-AlgoForge26/web/src[39m
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/MagneticButton.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/MagneticButton.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/MagneticButton.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: [postcss] ENOENT: no such file or directory, open 'F:\The-Iterators-AlgoForge26\web\tailwindcss'
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "gsap" from "src/components/landing/WireframeMesh.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/Accents.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/Accents.tsx". Does the file exist?
+[2m12:56:19 am[22m [31m[1m[vite][22m[39m Pre-transform error: Failed to resolve import "framer-motion" from "src/components/landing/FeatureVector.tsx". Does the file exist?
