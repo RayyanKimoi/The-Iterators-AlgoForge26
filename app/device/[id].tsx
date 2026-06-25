@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Image,
   Modal,
   Platform,
   Pressable,
@@ -13,36 +14,9 @@ import {
   View,
 } from 'react-native'
 
-import { Image } from 'react-native'
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 
-const LOCATIONIQ_API_KEY = process.env.EXPO_PUBLIC_LOCATIONIQ_API_KEY ?? ''
-
-function StaticMapView({ latitude, longitude, zoom = 14 }: { latitude: number; longitude: number; zoom?: number }) {
-  if (!LOCATIONIQ_API_KEY) {
-    return (
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1a1d24', alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={{ color: '#9ca3af', fontSize: 12 }}>Map key missing (EXPO_PUBLIC_LOCATIONIQ_API_KEY)</Text>
-      </View>
-    )
-  }
-
-  const src = `https://maps.locationiq.com/v3/staticmap?key=${LOCATIONIQ_API_KEY}&center=${latitude},${longitude}&zoom=${zoom}&size=800x400&format=png&maptype=streets`
-  return (
-    <View style={StyleSheet.absoluteFill}>
-       <Image 
-        source={{ uri: src }} 
-        style={[StyleSheet.absoluteFill, { backgroundColor: '#1a1d24' }]} 
-        resizeMode="cover" 
-      />
-      {/* Dark overlay to match app theme */}
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(18, 20, 26, 0.4)' }]} />
-      {/* Center Pin */}
-      <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-        <MaterialIcons name="place" size={32} color="#e53935" />
-      </View>
-    </View>
-  )
-}
+const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
 
 const customMapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#12141a' }] },
@@ -404,12 +378,60 @@ export default function DeviceDetailScreen() {
             <Text style={styles.lastSeenText}>No beacon logs available yet.</Text>
           )}
           <View style={[styles.mapPlaceholder, { overflow: 'hidden' }]}>
-            <StaticMapView 
-              latitude={mapRegion.latitude} 
-              longitude={mapRegion.longitude} 
-              zoom={14} 
-            />
+            <MapView
+              provider={PROVIDER_GOOGLE}
+              style={StyleSheet.absoluteFill}
+              initialRegion={mapRegion}
+              customMapStyle={customMapStyle}
+              scrollEnabled={true}
+              zoomEnabled={true}
+              pitchEnabled={false}
+              rotateEnabled={false}
+              showsBuildings={true}
+            >
+              {mapLocation && (
+                <Marker
+                  coordinate={{ latitude: mapLocation.latitude, longitude: mapLocation.longitude }}
+                  title={`${device.make} ${device.model}`}
+                  description={`Last seen ${formatRelativeFrom(lastSeenLabel)}`}
+                >
+                  <View style={{ alignItems: 'center' }}>
+                    <View style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: '#1f2e45',
+                      borderWidth: 2,
+                      borderColor: 'rgba(61,142,255,0.6)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <MaterialIcons name="smartphone" size={16} color={Colors.primary} />
+                    </View>
+                  </View>
+                </Marker>
+              )}
+            </MapView>
           </View>
+
+          {/* Street View thumbnail */}
+          {GOOGLE_MAPS_API_KEY && mapLocation && (
+            <View style={styles.streetViewCard}>
+              <View style={styles.streetViewImageWrap}>
+                <Image
+                  source={{ uri: `https://maps.googleapis.com/maps/api/streetview?size=600x200&location=${mapLocation.latitude},${mapLocation.longitude}&fov=90&heading=235&pitch=10&key=${GOOGLE_MAPS_API_KEY}` }}
+                  style={styles.streetViewImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.streetViewOverlay}>
+                  <View style={styles.streetViewBadge}>
+                    <MaterialIcons name="streetview" size={14} color={Colors.onSurface} />
+                    <Text style={styles.streetViewBadgeText}>Street View</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={styles.actionsWrap}>
@@ -647,7 +669,7 @@ const styles = StyleSheet.create({
   mapPlaceholder: {
     marginTop: 6,
     borderRadius: 12,
-    minHeight: 88,
+    minHeight: 160,
     backgroundColor: '#2d3138',
     alignItems: 'center',
     justifyContent: 'center',
@@ -730,5 +752,41 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bodyMedium,
     fontSize: 14,
     marginTop: 4,
+  },
+  streetViewCard: {
+    marginTop: 6,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  streetViewImageWrap: {
+    height: 80,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: Colors.surfaceContainer,
+  },
+  streetViewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  streetViewOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+    padding: 6,
+  },
+  streetViewBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 4,
+    backgroundColor: 'rgba(17,19,24,0.75)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  streetViewBadgeText: {
+    color: Colors.onSurface,
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 10,
+    letterSpacing: 0.3,
   },
 })
