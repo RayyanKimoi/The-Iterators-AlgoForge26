@@ -209,14 +209,6 @@ export default function TrackerScreen() {
     }
   }, [latestLog])
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <ActivityIndicator style={styles.loader} color={Colors.primary} />
-      </SafeAreaView>
-    )
-  }
-
   // Resolved marker coordinates — real data or default Mumbai test location
   const markerLat = latestLog?.latitude ?? MUMBAI_CENTER.latitude
   const markerLng = latestLog?.longitude ?? MUMBAI_CENTER.longitude
@@ -229,6 +221,14 @@ export default function TrackerScreen() {
         .map((l) => ({ latitude: l.latitude, longitude: l.longitude })),
     [mergedLogs]
   )
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator style={styles.loader} color={Colors.primary} />
+      </SafeAreaView>
+    )
+  }
 
   /* ---------- Re-center handler ---------- */
   const recenter = () => {

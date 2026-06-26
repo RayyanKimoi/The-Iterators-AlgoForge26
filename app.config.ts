@@ -1,11 +1,13 @@
 import type { ExpoConfig } from 'expo/config'
 import { withAndroidManifest, ConfigPlugin, AndroidConfig } from '@expo/config-plugins'
+import dotenv from 'dotenv'
+const envConfig = dotenv.config().parsed || {}
 
-const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
+const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || envConfig.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
 // Custom plugin to inject foregroundServiceType for Android 14+ compatibility
 const withForegroundServiceType: ConfigPlugin = (config) => {
-  return withAndroidManifest(config, async (modConfig) => {
+  return withAndroidManifest(config, (modConfig) => {
     const manifest = modConfig.modResults
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest)
     
@@ -17,6 +19,25 @@ const withForegroundServiceType: ConfigPlugin = (config) => {
       }
     }
     
+    return modConfig
+  })
+}
+
+// Custom plugin to inject Google Maps API Key securely
+const withGoogleMapsApiKey: ConfigPlugin = (config) => {
+  return withAndroidManifest(config, (modConfig) => {
+    const manifest = modConfig.modResults
+    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(manifest)
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+      application,
+      'com.google.android.geo.API_KEY',
+      googleMapsApiKey
+    )
+    AndroidConfig.Manifest.addMetaDataItemToMainApplication(
+      application,
+      'DEBUG_PLUGIN_WORKED',
+      'YES'
+    )
     return modConfig
   })
 }
@@ -53,13 +74,11 @@ const config: ExpoConfig = {
       monochromeImage: './assets/android-icon-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
-    config: googleMapsApiKey
-      ? {
-          googleMaps: {
-            apiKey: googleMapsApiKey,
-          },
-        }
-      : undefined,
+    config: {
+      googleMaps: {
+        apiKey: googleMapsApiKey,
+      },
+    },
     permissions: [
       'BLUETOOTH',
       'BLUETOOTH_ADMIN',
@@ -118,7 +137,6 @@ const config: ExpoConfig = {
         googleMapsApiKey: googleMapsApiKey,
       },
     ],
-    withForegroundServiceType,
   ],
   experiments: {
     typedRoutes: true,
@@ -131,4 +149,4 @@ const config: ExpoConfig = {
   },
 }
 
-export default config
+export default withGoogleMapsApiKey(withForegroundServiceType(config))
