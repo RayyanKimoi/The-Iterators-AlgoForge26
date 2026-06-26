@@ -110,7 +110,13 @@ export default function ScannerScreen() {
 
   const upsertDetectedDevice = useCallback(
     async (beaconId: string, rssi: number) => {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beaconId)
+      const shortId = beaconId?.trim()
+
+      if (!shortId || shortId.length < 4) {
+        return
+      }
+
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shortId)
 
       let matched:
         | {
@@ -129,49 +135,34 @@ export default function ScannerScreen() {
           .from('devices')
           .select('id, owner_id, make, model, status, ble_beacon_id')
           .eq('status', 'lost')
-          .eq('ble_device_uuid', beaconId.toLowerCase())
+          .eq('ble_device_uuid', shortId.toLowerCase())
           .limit(1)
+          .maybeSingle()
 
-        matched = data?.[0] as
-          | {
-              id: string
-              owner_id: string
-              make: string
-              model: string
-              status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
-              ble_beacon_id: string | null
-            }
-          | undefined
+        if (data) {
+          matched = data as any
+        }
       }
 
       // Bug 2 fix: Secondary fallback — check ble_beacon_id (legacy ID system)
       // Only try this if primary lookup found nothing
       if (!matched) {
-        const normalizedBeacon = beaconId.replace(/^SPORS-/i, '').trim()
-        const identifierCandidates = Array.from(new Set([beaconId, normalizedBeacon])).filter(Boolean)
+        const normalizedBeacon = shortId.replace(/^SPORS-/i, '').trim()
+        const identifierCandidates = Array.from(new Set([shortId, normalizedBeacon])).filter(Boolean)
 
         // Try ble_device_uuid match first with a prefix match
-        // This explicitly bypasses Android's 31-byte BLE limit by matching the 8-character shortId against the full UUID
-        const uuidOrQuery = identifierCandidates.map(c => `ble_device_uuid.ilike.${c}%`).join(',')
-        
+        // This explicitly bypasses Android's 31-byte BLE limit by matching the 5-character shortId against the full UUID
         const { data: uuidData } = await supabase
           .from('devices')
           .select('id, owner_id, make, model, status, ble_beacon_id')
           .eq('status', 'lost')
-          .or(uuidOrQuery)
+          .ilike('ble_device_uuid', `${shortId}%`)
           .limit(1)
+          .maybeSingle()
 
-
-        matched = uuidData?.[0] as
-          | {
-              id: string
-              owner_id: string
-              make: string
-              model: string
-              status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
-              ble_beacon_id: string | null
-            }
-          | undefined
+        if (uuidData) {
+          matched = uuidData as any
+        }
 
         // Final fallback: try legacy ble_beacon_id column
         if (!matched) {
@@ -181,27 +172,21 @@ export default function ScannerScreen() {
             .eq('status', 'lost')
             .in('ble_beacon_id', identifierCandidates)
             .limit(1)
+            .maybeSingle()
 
-          matched = legacyData?.[0] as
-            | {
-                id: string
-                owner_id: string
-                make: string
-                model: string
-                status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
-                ble_beacon_id: string | null
-              }
-            | undefined
+          if (legacyData) {
+            matched = legacyData as any
+          }
         }
       }
 
       if (!matched) {
-        console.log(`[SPORS-SCAN] No device found in database for beacon: ${beaconId}`)
+        console.log(`[SPORS-SCAN] No device found in database for beacon: ${shortId}`)
         return
       }
 
-      const normalizedBeacon = beaconId.replace(/^SPORS-/i, '').trim()
-      const finalBeaconId = matched?.ble_beacon_id || normalizedBeacon || beaconId
+      const normalizedBeacon = shortId.replace(/^SPORS-/i, '').trim()
+      const finalBeaconId = matched?.ble_beacon_id || normalizedBeacon || shortId
       const nextDevice: DetectedDevice = {
         beaconId: finalBeaconId,
         rssi,

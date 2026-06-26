@@ -428,12 +428,17 @@ class BLEService {
       const rssi = typeof device.rssi === 'number' ? device.rssi : -96
 
       if (!bleDeviceUuid) {
-        // Bug 1 fix: Do NOT fall back to querying random lost devices from the database.
-        console.log('[SPORS-SCAN] SPORS device detected but UUID not readable from advertisement – skipping (no ghost match)')
-        return
+        const shortId = deviceName?.trim();
+        if (shortId && shortId.length >= 4 && shortId !== 'unnamed') {
+          bleDeviceUuid = shortId;
+        } else {
+          // Bug 1 fix: Do NOT fall back to querying random lost devices from the database.
+          console.log('[SPORS-SCAN] SPORS device detected but UUID not readable from advertisement – skipping (no ghost match)')
+          return
+        }
       }
 
-      console.log(`[SPORS-SCAN] ✅ Matched SPORS device! UUID: ${bleDeviceUuid}`)
+      console.log(`[SPORS-SCAN] ✅ Matched SPORS device! UUID/ShortID: ${bleDeviceUuid}`)
 
       // Bug 7 fix: Check cooldown but don't set it until after the callback succeeds.
       // Use 10s cooldown for better catch rate across scan cycles
@@ -480,21 +485,31 @@ class BLEService {
 
     // Check if the device is still actually lost in the database
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('devices')
         .select('status')
         .eq('ble_device_uuid', storedUuid)
         .limit(1)
         .maybeSingle()
 
+      if (error) {
+        console.log('[SPORS-BLE] Network or database error verifying broadcast flag. Keeping current state.', error)
+        return
+      }
+
+      if (!data) {
+        console.log('[SPORS-BLE] No data returned from Supabase when verifying broadcast flag. Keeping current state.')
+        return
+      }
+
       const status = (data as { status: string } | null)?.status
       if (status && status !== 'lost') {
         console.log(`[SPORS-BLE] Device ${storedUuid} is no longer lost (status: ${status}). Clearing broadcast flag.`)
         await this.stopBroadcasting()
       }
-    } catch {
+    } catch (e) {
       // Network error — don't clear the flag, keep current state
-      console.log('[SPORS-BLE] Could not verify broadcasting flag (network error). Keeping current state.')
+      console.log('[SPORS-BLE] Could not verify broadcasting flag (network error/exception). Keeping current state.', e)
     }
   }
 
@@ -535,8 +550,8 @@ class BLEService {
     const peripheralName = `${BLE_BEACON_NAME_PREFIX}${this.encodeBleUuidToBeaconToken(normalizedUuid)}`
     const manufacturerData = this.encodeBleUuidForManufacturerData(normalizedUuid)
 
-    // Truncate to 8 characters to bypass Android's 31-byte BLE advertisement limit
-    const shortId = normalizedUuid.substring(0, 8)
+    // Truncate logic to strictly 5 characters to survive the 31-byte limit
+    const shortId = peripheralName ? peripheralName.substring(0, 5) : null
 
     try {
       await this.startForegroundBeaconService()
@@ -556,14 +571,21 @@ class BLEService {
         ])
       )
 
+      console.log('[SPORS-BLE] About to call startAdvertising with shortId:', shortId)
+      
+      const adOptions: { serviceUUIDs: string[]; localName?: string } = {
+        serviceUUIDs: [APP_SERVICE_UUID_NATIVE]
+      }
+      
+      if (shortId !== null) {
+        adOptions.localName = shortId
+      }
+
       await Promise.resolve(
-        startAdvertising({
-          serviceUUIDs: [APP_SERVICE_UUID_NATIVE],
-          localName: shortId,
-        })
+        startAdvertising(adOptions)
       )
 
-      console.log('[SPORS-BLE] Advertising started with service UUID:', APP_SERVICE_UUID_NATIVE, 'name:', peripheralName)
+      console.log('[SPORS-BLE] Advertising started successfully with service UUID:', APP_SERVICE_UUID_NATIVE, 'name:', peripheralName)
 
     } catch (error) {
       const message = this.getAdvertiseErrorMessage(error)
