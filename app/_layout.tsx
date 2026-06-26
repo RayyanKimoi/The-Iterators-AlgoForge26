@@ -10,7 +10,7 @@ import { Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora'
 
 import { Colors } from '../constants/colors'
 import { AuthProvider, useAuth } from '../hooks/useAuth'
-import { disableBackgroundBleScanTask, enableBackgroundBleScanTask } from '../services/backgroundBleTask'
+import { syncBackgroundBleScanTask } from '../services/backgroundBleTask'
 import { bleService } from '../services/ble.service'
 import '../services/backgroundBleTask'
 
@@ -37,10 +37,8 @@ function AuthGate() {
           await bleService.restoreBroadcastingFromStorage().catch(() => {
             // Ignore restore failures here; manual restart can still occur from registration flow.
           })
-          await disableBackgroundBleScanTask()
-        } else {
-          await enableBackgroundBleScanTask()
         }
+        await syncBackgroundBleScanTask()
       } catch (error) {
         // Log error but allow app to render - background service failures should not crash the UI
         console.error('[SPORS] BLE bootstrap failed (non-fatal):', error)

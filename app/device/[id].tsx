@@ -38,6 +38,7 @@ import { Colors } from '../../constants/colors'
 import { FontFamily } from '../../constants/typography'
 import { markFound, reportLost, useDevice } from '../../hooks/useDevices'
 import { supabase } from '../../lib/supabase'
+import { syncBackgroundBleScanTask } from '../../services/backgroundBleTask'
 import { bleService } from '../../services/ble.service'
 
 type LostForm = {
@@ -206,6 +207,7 @@ export default function DeviceDetailScreen() {
       await markFound(device.id)
       // Stop broadcasting mode so scanner works again
       await bleService.stopBroadcasting()
+      await syncBackgroundBleScanTask()
       await refetch()
       Alert.alert('Success', 'Device marked as found/recovered. Beacon broadcasting has been stopped.')
     } catch (actionError) {

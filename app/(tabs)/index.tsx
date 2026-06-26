@@ -99,7 +99,9 @@ export default function HomeScreen() {
   const passiveScanRef = useRef<NodeJS.Timeout | null>(null)
   const appStateRef = useRef(AppState.currentState)
 
-  // Passive BLE scanning - runs every 30 seconds while home screen is active
+  // Passive BLE scanning - runs periodically while home screen is active
+  // Bug 6 fix: Increased interval from 30s to 120s to avoid consuming Android's
+  // 5-scan-starts-per-30-seconds limit before the Scanner tab gets a chance.
   useEffect(() => {
     const runPassiveScan = async () => {
       try {
@@ -108,15 +110,15 @@ export default function HomeScreen() {
           return // Don't scan if we're broadcasting (lost device mode)
         }
         
-        // Quick 10-second scan
+        // Quick background scan
         await bleService.scanForSPORSDevices(() => {
           // Callback handles reporting to Supabase automatically
         })
         
-        // Stop after 10 seconds
+        // Stop after 8 seconds (reduced from 10s to conserve scan budget)
         setTimeout(() => {
           bleService.stopScan()
-        }, 10000)
+        }, 8000)
       } catch {
         // Silent fail - permissions not granted or other issue
       }
@@ -135,10 +137,10 @@ export default function HomeScreen() {
     // Initial scan when component mounts
     void runPassiveScan()
 
-    // Set up interval for periodic scanning (every 30 seconds)
+    // Set up interval for periodic scanning (every 120 seconds instead of 30)
     passiveScanRef.current = setInterval(() => {
       void runPassiveScan()
-    }, 30000)
+    }, 120000)
 
     return () => {
       if (passiveScanRef.current) {

@@ -137,6 +137,8 @@ class BLEService {
 
   private recentlySeen = new Map<string, number>()
   private broadcastingMode: boolean | null = null
+  private lastBroadcastFlagVerifiedAt = 0
+  private static readonly BROADCAST_FLAG_VERIFY_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
   constructor() {
     try {
@@ -358,7 +360,10 @@ class BLEService {
     return this.normalizeBleUuid(value)
   }
 
-  async scanForSPORSDevices(onDeviceFound: FoundCallback) {
+  async scanForSPORSDevices(onDeviceFound: FoundCallback, options?: { skipPermissionPrompt?: boolean }) {
+    // Bug 4 fix: verify broadcasting flag against actual device status
+    await this.verifyBroadcastingFlag()
+
     const broadcasting = await this.getBroadcastingMode()
     if (broadcasting) {
       throw new Error('Broadcast mode is active on this device. Scanning is disabled for lost-owner mode.')
@@ -366,9 +371,20 @@ class BLEService {
 
     this.stopScan()
 
-    const granted = await this.requestScanPermissions()
-    if (!granted) {
-      throw new Error('Location and bluetooth permissions are required for scanning.')
+    // In background context, we can't show permission dialogs — only check existing grants
+    if (options?.skipPermissionPrompt) {
+      if (Platform.OS === 'android' && Platform.Version >= 31) {
+        const scanGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN)
+        const locationGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)
+        if (!scanGranted || !locationGranted) {
+          throw new Error('Bluetooth/location permissions not granted for background scan.')
+        }
+      }
+    } else {
+      const granted = await this.requestScanPermissions()
+      if (!granted) {
+        throw new Error('Location and bluetooth permissions are required for scanning.')
+      }
     }
 
     if (!this.manager) {
@@ -393,13 +409,13 @@ class BLEService {
       const serviceUUIDs = device.serviceUUIDs ?? []
       console.log(`[SPORS-SCAN] Found SPORS device: ${deviceName} | Services: ${JSON.stringify(serviceUUIDs)} | RSSI: ${device.rssi}`)
 
-      // Try to extract UUID from manufacturer data or beacon name (legacy)
+      // Try to extract UUID from manufacturer data or beacon name
       let bleDeviceUuid = this.readBleUuidFromAdvertisement(device)
 
-      // If no UUID from advertisement data, check GATT service characteristics
+      // If no UUID from advertisement data, check service UUIDs in the packet
       // The service UUID filter already ensures this is a SPORS device
       if (!bleDeviceUuid && serviceUUIDs.length > 0) {
-        // Find a characteristic UUID that looks like a device UUID (not the SPORS app service UUID)
+        // Find a UUID that looks like a device UUID (not the SPORS app service UUID)
         for (const svcUuid of serviceUUIDs) {
           const normalized = this.normalizeBleUuid(svcUuid)
           if (normalized && normalized !== APP_SERVICE_UUID_NATIVE) {
@@ -412,68 +428,73 @@ class BLEService {
       const rssi = typeof device.rssi === 'number' ? device.rssi : -96
 
       if (!bleDeviceUuid) {
-        // Device is definitely SPORS (filtered by service UUID) but UUID not in ad packet
-        // Query Supabase for any lost device as this is likely the one broadcasting
-        console.log('[SPORS-SCAN] SPORS device found via service UUID – querying Supabase for lost devices')
-        void this.findAndReportSPORSDevice(rssi, onDeviceFound)
+        // Bug 1 fix: Do NOT fall back to querying random lost devices from the database.
+        console.log('[SPORS-SCAN] SPORS device detected but UUID not readable from advertisement – skipping (no ghost match)')
         return
       }
 
       console.log(`[SPORS-SCAN] ✅ Matched SPORS device! UUID: ${bleDeviceUuid}`)
 
+      // Bug 7 fix: Check cooldown but don't set it until after the callback succeeds.
+      // Use 10s cooldown for better catch rate across scan cycles
       const now = Date.now()
       const cooldown = this.recentlySeen.get(bleDeviceUuid)
-      if (cooldown && now - cooldown < 4500) {
+      if (cooldown && now - cooldown < 10000) {
         return
       }
 
-      this.recentlySeen.set(bleDeviceUuid, now)
       onDeviceFound(bleDeviceUuid, rssi)
+      // Set cooldown AFTER the callback, not before
+      this.recentlySeen.set(bleDeviceUuid, now)
       void this.reportDetectedLostDevice(bleDeviceUuid, rssi).catch(() => {
-        // Ignore reporting failures; scanning must continue.
+        // If reporting fails, clear cooldown so next detection retries
+        this.recentlySeen.delete(bleDeviceUuid)
       })
     })
   }
 
-  private async findAndReportSPORSDevice(rssi: number, onDeviceFound: FoundCallback) {
-    const cooldownKey = '__spors_service_scan__'
-    const now = Date.now()
-    const lastSeen = this.recentlySeen.get(cooldownKey)
-    if (lastSeen && now - lastSeen < 4500) {
+  // Bug 4 fix: Verify broadcasting flag against actual device status.
+  // If the flag says we're broadcasting but there's no lost device for our user,
+  // the flag is stale (e.g. user marked device found on website but flag persists).
+  // Cached with 5-minute TTL to avoid adding network latency to every scan start.
+  private async verifyBroadcastingFlag() {
+    const modeEnabled = await this.getBroadcastingMode()
+    if (!modeEnabled) {
       return
     }
-    this.recentlySeen.set(cooldownKey, now)
 
+    // Skip verification if checked recently (5 min TTL)
+    const now = Date.now()
+    if (now - this.lastBroadcastFlagVerifiedAt < BLEService.BROADCAST_FLAG_VERIFY_TTL_MS) {
+      return
+    }
+    this.lastBroadcastFlagVerifiedAt = now
+
+    const storedUuid = await this.getStoredBleDeviceUuid()
+    if (!storedUuid) {
+      // No UUID stored but broadcasting flag is set — stale flag
+      console.log('[SPORS-BLE] Stale broadcasting flag detected (no stored UUID). Clearing.')
+      await this.setBroadcastingMode(false)
+      return
+    }
+
+    // Check if the device is still actually lost in the database
     try {
-      const { data, error: queryError } = await supabase
+      const { data } = await supabase
         .from('devices')
-        .select('ble_device_uuid, status')
-        .eq('status', 'lost')
-        .not('ble_device_uuid', 'is', null)
-        .limit(10)
+        .select('status')
+        .eq('ble_device_uuid', storedUuid)
+        .limit(1)
+        .maybeSingle()
 
-      if (queryError) {
-        console.log('[SPORS-SCAN] Supabase query error:', queryError.message)
-        return
+      const status = (data as { status: string } | null)?.status
+      if (status && status !== 'lost') {
+        console.log(`[SPORS-BLE] Device ${storedUuid} is no longer lost (status: ${status}). Clearing broadcast flag.`)
+        await this.stopBroadcasting()
       }
-
-      if (data && data.length > 0) {
-        for (const row of data) {
-          const uuid = this.normalizeBleUuid((row as { ble_device_uuid: string | null }).ble_device_uuid)
-          if (uuid) {
-            console.log(`[SPORS-SCAN] ✅ Found lost device from Supabase: ${uuid}`)
-            onDeviceFound(uuid, rssi)
-            // Auto-report location to the device owner
-            void this.reportDetectedLostDevice(uuid, rssi).catch(() => {
-              // Ignore location report failures; scanning must continue.
-            })
-            return
-          }
-        }
-      }
-      console.log('[SPORS-SCAN] No lost devices found in Supabase')
-    } catch (err) {
-      console.log('[SPORS-SCAN] Supabase lookup failed:', err)
+    } catch {
+      // Network error — don't clear the flag, keep current state
+      console.log('[SPORS-BLE] Could not verify broadcasting flag (network error). Keeping current state.')
     }
   }
 
@@ -532,13 +553,16 @@ class BLEService {
         ])
       )
 
+      // Bug 3 fix: Include localName in advertising so scanners can read the device UUID
+      // from the beacon name (SPORS-{base64 encoded UUID token})
       await Promise.resolve(
         startAdvertising({
           serviceUUIDs: [APP_SERVICE_UUID_NATIVE],
+          localName: peripheralName,
         })
       )
 
-      console.log('[SPORS-BLE] Advertising started with service UUID:', APP_SERVICE_UUID_NATIVE)
+      console.log('[SPORS-BLE] Advertising started with service UUID:', APP_SERVICE_UUID_NATIVE, 'name:', peripheralName)
 
     } catch (error) {
       const message = this.getAdvertiseErrorMessage(error)
@@ -570,8 +594,9 @@ class BLEService {
     await this.setBroadcastingMode(false)
   }
 
-  stopBroadcast() {
-    void this.stopBroadcasting()
+  // Bug 5 fix: Make stopBroadcast async so callers can await proper cleanup
+  async stopBroadcast() {
+    await this.stopBroadcasting()
   }
 
   async restoreBroadcastingFromStorage() {

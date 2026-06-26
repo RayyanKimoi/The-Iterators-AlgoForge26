@@ -123,6 +123,7 @@ export default function ScannerScreen() {
           }
         | undefined
 
+      // Bug 2 fix: Primary lookup by ble_device_uuid (the authoritative ID system)
       if (isUuid) {
         const { data } = await supabase
           .from('devices')
@@ -143,17 +144,21 @@ export default function ScannerScreen() {
           | undefined
       }
 
+      // Bug 2 fix: Secondary fallback — check ble_beacon_id (legacy ID system)
+      // Only try this if primary lookup found nothing
       if (!matched) {
         const normalizedBeacon = beaconId.replace(/^SPORS-/i, '').trim()
         const identifierCandidates = Array.from(new Set([beaconId, normalizedBeacon])).filter(Boolean)
-        const { data } = await supabase
+
+        // Try ble_device_uuid match first (in case beaconId was a non-standard format)
+        const { data: uuidData } = await supabase
           .from('devices')
           .select('id, owner_id, make, model, status, ble_beacon_id')
           .eq('status', 'lost')
-          .in('ble_beacon_id', identifierCandidates)
+          .in('ble_device_uuid', identifierCandidates)
           .limit(1)
 
-        matched = data?.[0] as
+        matched = uuidData?.[0] as
           | {
               id: string
               owner_id: string
@@ -163,9 +168,31 @@ export default function ScannerScreen() {
               ble_beacon_id: string | null
             }
           | undefined
+
+        // Final fallback: try legacy ble_beacon_id column
+        if (!matched) {
+          const { data: legacyData } = await supabase
+            .from('devices')
+            .select('id, owner_id, make, model, status, ble_beacon_id')
+            .eq('status', 'lost')
+            .in('ble_beacon_id', identifierCandidates)
+            .limit(1)
+
+          matched = legacyData?.[0] as
+            | {
+                id: string
+                owner_id: string
+                make: string
+                model: string
+                status: 'registered' | 'lost' | 'found' | 'recovered' | 'stolen'
+                ble_beacon_id: string | null
+              }
+            | undefined
+        }
       }
 
       if (!matched) {
+        console.log(`[SPORS-SCAN] No device found in database for beacon: ${beaconId}`)
         return
       }
 

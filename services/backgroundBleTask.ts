@@ -1,6 +1,7 @@
 import * as BackgroundFetch from 'expo-background-fetch'
 import * as TaskManager from 'expo-task-manager'
 import * as Location from 'expo-location'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { bleService } from './ble.service'
 import { supabase } from '../lib/supabase'
@@ -36,12 +37,16 @@ if (!TaskManager.isTaskDefined(BLE_SCAN_TASK)) {
 
       let detectedAny = false
 
-      // Step 2: Start BLE scan
+      // Step 2: Start BLE scan — use skipPermissionPrompt to avoid crashing
+      // with permission dialogs in background context
       console.log('[SPORS-BG] Starting BLE scan...')
-      await bleService.scanForSPORSDevices((beaconId, rssi) => {
-        detectedAny = true
-        console.log(`[SPORS-BG] ✅ Detected SPORS device: ${beaconId} RSSI: ${rssi}`)
-      })
+      await bleService.scanForSPORSDevices(
+        (beaconId, rssi) => {
+          detectedAny = true
+          console.log(`[SPORS-BG] ✅ Detected SPORS device: ${beaconId} RSSI: ${rssi}`)
+        },
+        { skipPermissionPrompt: true }
+      )
 
       // Step 3: Wait for scan to run (15 seconds for background)
       await new Promise((resolve) => setTimeout(resolve, 15000))
@@ -96,6 +101,21 @@ export async function disableBackgroundBleScanTask() {
 
   if (exists) {
     await BackgroundFetch.unregisterTaskAsync(BLE_SCAN_TASK)
+  }
+}
+
+export async function syncBackgroundBleScanTask() {
+  const isBroadcasting = await bleService.isBroadcastingMode()
+  if (isBroadcasting) {
+    await disableBackgroundBleScanTask()
+    return
+  }
+
+  const blePref = await AsyncStorage.getItem('@spors/ble_scan_enabled')
+  if (blePref === 'true') {
+    await enableBackgroundBleScanTask()
+  } else {
+    await disableBackgroundBleScanTask()
   }
 }
 
