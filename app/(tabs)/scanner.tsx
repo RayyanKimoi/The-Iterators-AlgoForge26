@@ -150,13 +150,17 @@ export default function ScannerScreen() {
         const normalizedBeacon = beaconId.replace(/^SPORS-/i, '').trim()
         const identifierCandidates = Array.from(new Set([beaconId, normalizedBeacon])).filter(Boolean)
 
-        // Try ble_device_uuid match first (in case beaconId was a non-standard format)
+        // Try ble_device_uuid match first with a prefix match
+        // This explicitly bypasses Android's 31-byte BLE limit by matching the 8-character shortId against the full UUID
+        const uuidOrQuery = identifierCandidates.map(c => `ble_device_uuid.ilike.${c}%`).join(',')
+        
         const { data: uuidData } = await supabase
           .from('devices')
           .select('id, owner_id, make, model, status, ble_beacon_id')
           .eq('status', 'lost')
-          .in('ble_device_uuid', identifierCandidates)
+          .or(uuidOrQuery)
           .limit(1)
+
 
         matched = uuidData?.[0] as
           | {

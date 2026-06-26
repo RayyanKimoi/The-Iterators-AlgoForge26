@@ -535,6 +535,9 @@ class BLEService {
     const peripheralName = `${BLE_BEACON_NAME_PREFIX}${this.encodeBleUuidToBeaconToken(normalizedUuid)}`
     const manufacturerData = this.encodeBleUuidForManufacturerData(normalizedUuid)
 
+    // Truncate to 8 characters to bypass Android's 31-byte BLE advertisement limit
+    const shortId = normalizedUuid.substring(0, 8)
+
     try {
       await this.startForegroundBeaconService()
 
@@ -553,12 +556,10 @@ class BLEService {
         ])
       )
 
-      // Bug 3 fix: Include localName in advertising so scanners can read the device UUID
-      // from the beacon name (SPORS-{base64 encoded UUID token})
       await Promise.resolve(
         startAdvertising({
           serviceUUIDs: [APP_SERVICE_UUID_NATIVE],
-          localName: peripheralName,
+          localName: shortId,
         })
       )
 
