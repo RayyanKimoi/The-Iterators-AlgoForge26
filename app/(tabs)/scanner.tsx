@@ -131,7 +131,8 @@ export default function ScannerScreen() {
 
       // Bug 2 fix: Primary lookup by ble_device_uuid (the authoritative ID system)
       if (isUuid) {
-        const { data } = await supabase
+        console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Querying Supabase for lost device by exact UUID '${shortId}'...`)
+        const { data, error } = await supabase
           .from('devices')
           .select('id, owner_id, make, model, status, ble_beacon_id')
           .eq('status', 'lost')
@@ -139,7 +140,11 @@ export default function ScannerScreen() {
           .limit(1)
           .maybeSingle()
 
-        if (data) {
+        if (error) {
+          console.log(`[SPORS-BLE-DEBUG] 🔴 ERROR: Supabase exact UUID query failed. Message: ${error.message}, Details: ${error.details}`)
+        } else if (!data) {
+          console.log(`[SPORS-BLE-DEBUG] 🟡 WARN: DB reachable, but exact UUID '${shortId}' is not registered as 'lost'.`)
+        } else {
           matched = data as any
         }
       }
@@ -152,7 +157,8 @@ export default function ScannerScreen() {
 
         // Try ble_device_uuid match first with a prefix match
         // This explicitly bypasses Android's 31-byte BLE limit by matching the 5-character shortId against the full UUID
-        const { data: uuidData } = await supabase
+        console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Querying Supabase for lost device starting with '${shortId}'...`)
+        const { data: uuidData, error: uuidError } = await supabase
           .from('devices')
           .select('id, owner_id, make, model, status, ble_beacon_id')
           .eq('status', 'lost')
@@ -160,13 +166,18 @@ export default function ScannerScreen() {
           .limit(1)
           .maybeSingle()
 
-        if (uuidData) {
+        if (uuidError) {
+          console.log(`[SPORS-BLE-DEBUG] 🔴 ERROR: Supabase query failed for prefix '${shortId}'. Message: ${uuidError.message}, Details: ${uuidError.details}`)
+        } else if (!uuidData) {
+          console.log(`[SPORS-BLE-DEBUG] 🟡 WARN: DB reachable, but no 'lost' device matches prefix '${shortId}'.`)
+        } else {
           matched = uuidData as any
         }
 
         // Final fallback: try legacy ble_beacon_id column
         if (!matched) {
-          const { data: legacyData } = await supabase
+          console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Querying Supabase for lost device by legacy beacon IDs: ${JSON.stringify(identifierCandidates)}...`)
+          const { data: legacyData, error: legacyError } = await supabase
             .from('devices')
             .select('id, owner_id, make, model, status, ble_beacon_id')
             .eq('status', 'lost')
@@ -174,7 +185,11 @@ export default function ScannerScreen() {
             .limit(1)
             .maybeSingle()
 
-          if (legacyData) {
+          if (legacyError) {
+            console.log(`[SPORS-BLE-DEBUG] 🔴 ERROR: Supabase legacy query failed. Message: ${legacyError.message}, Details: ${legacyError.details}`)
+          } else if (!legacyData) {
+            console.log(`[SPORS-BLE-DEBUG] 🟡 WARN: DB reachable, but no legacy beacon IDs matched.`)
+          } else {
             matched = legacyData as any
           }
         }

@@ -377,15 +377,20 @@ class BLEService {
         const scanGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN)
         const locationGranted = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION)
         if (!scanGranted || !locationGranted) {
+          console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: Bluetooth/location permissions not granted for background scan.')
           throw new Error('Bluetooth/location permissions not granted for background scan.')
         }
       }
     } else {
       const granted = await this.requestScanPermissions()
       if (!granted) {
+        console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: Location and bluetooth permissions are required for scanning.')
         throw new Error('Location and bluetooth permissions are required for scanning.')
       }
     }
+
+    const state = this.manager?.state ? await this.manager.state() : 'Unknown'
+    console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Pre-flight scan check passed. BLE State: ${state}, Permissions: Granted.`)
 
     if (!this.manager) {
       throw new Error('BLE manager is not available. Please ensure Bluetooth is enabled.')
@@ -398,7 +403,7 @@ class BLEService {
     this.manager.startDeviceScan(scanServiceUuids, { allowDuplicates: false }, (error, device) => {
       if (error || !device) {
         if (error) {
-          console.log('[SPORS-SCAN] BLE scan error', error)
+          console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: BLE scan error', JSON.stringify(error))
         }
 
         this.stopScan()
@@ -407,7 +412,8 @@ class BLEService {
 
       const deviceName = device.localName ?? device.name ?? 'unnamed'
       const serviceUUIDs = device.serviceUUIDs ?? []
-      console.log(`[SPORS-SCAN] Found SPORS device: ${deviceName} | Services: ${JSON.stringify(serviceUUIDs)} | RSSI: ${device.rssi}`)
+      
+      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Antenna picked up device. ID: ${device.id ?? 'unknown'}, Name: ${deviceName}, RSSI: ${device.rssi}`)
 
       // Try to extract UUID from manufacturer data or beacon name
       let bleDeviceUuid = this.readBleUuidFromAdvertisement(device)
@@ -432,13 +438,12 @@ class BLEService {
         if (shortId && shortId.length >= 4 && shortId !== 'unnamed') {
           bleDeviceUuid = shortId;
         } else {
-          // Bug 1 fix: Do NOT fall back to querying random lost devices from the database.
-          console.log('[SPORS-SCAN] SPORS device detected but UUID not readable from advertisement – skipping (no ghost match)')
+          console.log(`[SPORS-BLE-DEBUG] 🟡 WARN: Discarding detection. Extracted shortId '${shortId}' is too short.`)
           return
         }
       }
 
-      console.log(`[SPORS-SCAN] ✅ Matched SPORS device! UUID/ShortID: ${bleDeviceUuid}`)
+      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: ✅ Matched SPORS device! UUID/ShortID: ${bleDeviceUuid}`)
 
       // Bug 7 fix: Check cooldown but don't set it until after the callback succeeds.
       // Use 10s cooldown for better catch rate across scan cycles
@@ -478,10 +483,12 @@ class BLEService {
     const storedUuid = await this.getStoredBleDeviceUuid()
     if (!storedUuid) {
       // No UUID stored but broadcasting flag is set — stale flag
-      console.log('[SPORS-BLE] Stale broadcasting flag detected (no stored UUID). Clearing.')
+      console.log('[SPORS-BLE-DEBUG] 🟡 WARN: Stale broadcasting flag detected (no stored UUID). Clearing.')
       await this.setBroadcastingMode(false)
       return
     }
+
+    console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Verifying broadcast flag for UUID: ${storedUuid}`)
 
     // Check if the device is still actually lost in the database
     try {
@@ -493,23 +500,23 @@ class BLEService {
         .maybeSingle()
 
       if (error) {
-        console.log('[SPORS-BLE] Network or database error verifying broadcast flag. Keeping current state.', error)
+        console.log(`[SPORS-BLE-DEBUG] 🔴 ERROR: Supabase query failed in verifyBroadcastingFlag. ${JSON.stringify(error)}`)
         return
       }
 
       if (!data) {
-        console.log('[SPORS-BLE] No data returned from Supabase when verifying broadcast flag. Keeping current state.')
+        console.log(`[SPORS-BLE-DEBUG] 🟡 WARN: DB reachable, but no data returned from Supabase for UUID ${storedUuid}. Keeping current state.`)
         return
       }
 
       const status = (data as { status: string } | null)?.status
       if (status && status !== 'lost') {
-        console.log(`[SPORS-BLE] Device ${storedUuid} is no longer lost (status: ${status}). Clearing broadcast flag.`)
+        console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Device ${storedUuid} is no longer lost (status: ${status}). Clearing broadcast flag.`)
         await this.stopBroadcasting()
       }
     } catch (e) {
       // Network error — don't clear the flag, keep current state
-      console.log('[SPORS-BLE] Could not verify broadcasting flag (network error/exception). Keeping current state.', e)
+      console.log(`[SPORS-BLE-DEBUG] 🔴 ERROR: Exception in verifyBroadcastingFlag. ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 
@@ -526,13 +533,18 @@ class BLEService {
 
     const locationGranted = await this.ensureForegroundLocationPermission()
     if (!locationGranted) {
+      console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: Location permission is required to activate lost mode beacon.')
       throw new Error('Location permission is required to activate lost mode beacon.')
     }
 
     const broadcastGranted = await this.requestBroadcastPermissions()
     if (!broadcastGranted) {
+      console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: Bluetooth advertise/connect and notification permissions are required for BLE background broadcasting.')
       throw new Error('Bluetooth advertise/connect and notification permissions are required for BLE background broadcasting.')
     }
+
+    const state = this.manager?.state ? await this.manager.state() : 'Unknown'
+    console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Pre-flight broadcast check passed. BLE State: ${state}, Permissions: Granted.`)
 
     const normalizedUuid = this.normalizeBleUuid(bleDeviceUuid)
     if (!normalizedUuid) {
@@ -571,25 +583,17 @@ class BLEService {
         ])
       )
 
-      console.log('[SPORS-BLE] About to call startAdvertising with shortId:', shortId)
-      
-      const adOptions: { serviceUUIDs: string[]; localName?: string } = {
-        serviceUUIDs: [APP_SERVICE_UUID_NATIVE]
-      }
-      
-      if (shortId !== null) {
-        adOptions.localName = shortId
-      }
+      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Initiating native broadcast with payload: ${JSON.stringify(adOptions)}`)
 
       await Promise.resolve(
         startAdvertising(adOptions)
       )
 
-      console.log('[SPORS-BLE] Advertising started successfully with service UUID:', APP_SERVICE_UUID_NATIVE, 'name:', peripheralName)
+      console.log('[SPORS-BLE-DEBUG] 🔵 INFO: Advertising started successfully with service UUID:', APP_SERVICE_UUID_NATIVE, 'name:', peripheralName)
 
     } catch (error) {
       const message = this.getAdvertiseErrorMessage(error)
-      console.log('BLE peripheral advertise error', error)
+      console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: BLE peripheral advertise error', JSON.stringify(error))
       await this.setBroadcastingMode(false)
       await Promise.resolve(stopAdvertising()).catch(() => {
         // Ignore advertiser teardown errors during failed startup.
