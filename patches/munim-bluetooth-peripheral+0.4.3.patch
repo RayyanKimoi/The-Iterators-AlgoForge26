@@ -1,0 +1,19 @@
+diff --git a/node_modules/munim-bluetooth-peripheral/android/src/main/java/com/bluetoothperipheral/BluetoothPeripheralModule.kt b/node_modules/munim-bluetooth-peripheral/android/src/main/java/com/bluetoothperipheral/BluetoothPeripheralModule.kt
+index 92ad36a..4ba904b 100644
+--- a/node_modules/munim-bluetooth-peripheral/android/src/main/java/com/bluetoothperipheral/BluetoothPeripheralModule.kt
++++ b/node_modules/munim-bluetooth-peripheral/android/src/main/java/com/bluetoothperipheral/BluetoothPeripheralModule.kt
+@@ -91,10 +91,10 @@ class BluetoothPeripheralModule(reactContext: ReactApplicationContext) :
+       val localName = options.getString("localName")
+       if (localName != null) {
+         bluetoothAdapter.name = localName
+-        dataBuilder.addServiceData(
+-          ParcelUuid.fromString("0000180D-0000-1000-8000-00805F9B34FB"), // Heart Rate Service UUID as placeholder
+-          localName.toByteArray()
+-        )
++        // CRITICAL: Tell the AdvertiseData.Builder to include the device name
++        // in the advertisement packet. Without this, the name is only available
++        // in the Scan Response (which passive scanners ignore).
++        dataBuilder.setIncludeDeviceName(true)
+       }
+       
+       // Legacy support - manufacturer data

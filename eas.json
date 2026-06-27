@@ -22,6 +22,16 @@
     "production": {
       "autoIncrement": true,
       "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://xeykhdyanzjkymlfwseo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhleWtoZHlhbnpqa3ltbGZ3c2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1MzM1NjIsImV4cCI6MjA5MDEwOTU2Mn0.XSkxceiFbDqODroiNIcN7tu9yJcaAGk8UmdCUVdrC3o",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyA3fj0zia1kgZIcXRFijC5kokCl5bBsfPc"
+      }
+    },
+    "debug_telemetry": {
+      "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
       },

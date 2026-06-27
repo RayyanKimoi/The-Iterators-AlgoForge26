@@ -12,6 +12,7 @@ import { Colors } from '../constants/colors'
 import { AuthProvider, useAuth } from '../hooks/useAuth'
 import { syncBackgroundBleScanTask } from '../services/backgroundBleTask'
 import { bleService } from '../services/ble.service'
+import { supabase } from '../lib/supabase'
 import '../services/backgroundBleTask'
 
 function AuthGate() {
@@ -28,6 +29,28 @@ function AuthGate() {
     const bootstrapBleBackground = async () => {
       try {
         await bleService.requestScanPermissions()
+
+        // Task 3: Proactively sync the device UUID from Supabase into AsyncStorage
+        // so broadcasting never falls back to the generic "SPORS" name.
+        try {
+          const { data: authData } = await supabase.auth.getUser()
+          if (authData?.user?.id) {
+            const { data: deviceRow } = await supabase
+              .from('devices')
+              .select('ble_device_uuid')
+              .eq('owner_id', authData.user.id)
+              .limit(1)
+              .maybeSingle()
+
+            if (deviceRow?.ble_device_uuid) {
+              await bleService.setStoredBleDeviceUuid(deviceRow.ble_device_uuid)
+              console.log('[SPORS-AUTH] 🔵 Synced device UUID to AsyncStorage on login/boot:', deviceRow.ble_device_uuid)
+            }
+          }
+        } catch (syncError) {
+          console.warn('[SPORS-AUTH] ⚠️ Device UUID sync failed (non-fatal):', syncError)
+        }
+
         const broadcasting = await bleService.isBroadcastingMode()
         if (cancelled) {
           return

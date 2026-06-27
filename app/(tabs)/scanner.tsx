@@ -112,7 +112,8 @@ export default function ScannerScreen() {
     async (beaconId: string, rssi: number) => {
       const shortId = beaconId?.trim()
 
-      if (!shortId || shortId.length < 4) {
+      // Reject empty, too-short, or generic fallback names
+      if (!shortId || shortId.length < 4 || shortId === 'SPORS') {
         return
       }
 

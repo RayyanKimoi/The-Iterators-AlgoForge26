@@ -126,8 +126,8 @@ class BLEService {
   private manager: {
     startDeviceScan: (
       uuids: string[] | null,
-      options: { allowDuplicates?: boolean } | null,
-      listener: (error: unknown, device: { localName?: string | null; name?: string | null; rssi?: number | null; serviceUUIDs?: string[] | null; manufacturerData?: string | null } | null) => void
+      options: { allowDuplicates?: boolean; scanMode?: number } | null,
+      listener: (error: unknown, device: { id?: string | null; localName?: string | null; name?: string | null; rssi?: number | null; serviceUUIDs?: string[] | null; manufacturerData?: string | null } | null) => void
     ) => void
     stopDeviceScan: () => void
     state?: () => Promise<string>
@@ -208,11 +208,19 @@ class BLEService {
     let bluetoothGranted = true
     if (Platform.OS === 'android') {
       if (Platform.Version >= 31) {
-        const requested = await PermissionsAndroid.requestMultiple([
+        const permissionsToRequest = [
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        ])
+        ]
+
+        // Request POST_NOTIFICATIONS on Android 13+ (API 33) so foreground service
+        // notifications are permitted from the very first app launch.
+        if (Platform.Version >= 33 && PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS) {
+          permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)
+        }
+
+        const requested = await PermissionsAndroid.requestMultiple(permissionsToRequest)
 
         bluetoothGranted =
           requested[PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN] === PermissionsAndroid.RESULTS.GRANTED &&
@@ -400,7 +408,9 @@ class BLEService {
 
     console.log('[SPORS-SCAN] Starting BLE scan. Filtering for service UUIDs:', scanServiceUuids)
 
-    this.manager.startDeviceScan(scanServiceUuids, { allowDuplicates: false }, (error, device) => {
+    // Use Active Scanning (Low Latency / scanMode 2) so the radio explicitly
+    // requests the Scan Response packet that carries the localName.
+    this.manager.startDeviceScan(scanServiceUuids, { allowDuplicates: false, scanMode: 2 }, (error, device) => {
       if (error || !device) {
         if (error) {
           console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: BLE scan error', JSON.stringify(error))
@@ -410,7 +420,9 @@ class BLEService {
         return
       }
 
-      const deviceName = device.localName ?? device.name ?? 'unnamed'
+      // Aggressively extract name — use || so empty strings are also rejected
+      const extractedName = device.localName || device.name
+      const deviceName = extractedName || 'unnamed'
       const serviceUUIDs = device.serviceUUIDs ?? []
       
       console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Antenna picked up device. ID: ${device.id ?? 'unknown'}, Name: ${deviceName}, RSSI: ${device.rssi}`)
@@ -434,7 +446,14 @@ class BLEService {
       const rssi = typeof device.rssi === 'number' ? device.rssi : -96
 
       if (!bleDeviceUuid) {
-        const shortId = deviceName?.trim();
+        // If no name was extracted at all, or the name is the generic "SPORS" fallback,
+        // discard — we can't resolve this to a real device.
+        if (!extractedName || extractedName === 'SPORS') {
+          console.log(`[SPORS-BLE-DEBUG] 🟡 WARN: Discarding detection. No usable localName (got '${deviceName}').`)
+          return
+        }
+
+        const shortId = extractedName.trim();
         if (shortId && shortId.length >= 4 && shortId !== 'unnamed') {
           bleDeviceUuid = shortId;
         } else {
@@ -563,7 +582,8 @@ class BLEService {
     const manufacturerData = this.encodeBleUuidForManufacturerData(normalizedUuid)
 
     // Truncate logic to strictly 5 characters to survive the 31-byte limit
-    const shortId = peripheralName ? peripheralName.substring(0, 5) : null
+    // We take the first 5 chars of the UUID itself, rather than the "SPORS-" prefix
+    const shortId = normalizedUuid.substring(0, 5)
 
     try {
       await this.startForegroundBeaconService()
@@ -583,17 +603,32 @@ class BLEService {
         ])
       )
 
-      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Initiating native broadcast with payload: ${JSON.stringify(adOptions)}`)
+      const advertisingOptions = {
+        serviceUUIDs: ['5a0f5000-0000-0000-0000-000000000000'],
+        localName: shortId || "SPORS",
+        includeDeviceName: true, // Force modern Android APIs to attach the name
+        adOptions: {
+          advertiseMode: 2, // Low Latency / High Frequency
+          txPowerLevel: 3,  // High Power
+          connectable: false,
+          includeDeviceName: true // Force legacy Android APIs to attach the name
+        }
+      };
+      
+      console.log('[SPORS-BLE-DEBUG] 🟡 Sending payload to Android:', JSON.stringify(advertisingOptions));
 
-      await Promise.resolve(
-        startAdvertising(adOptions)
-      )
+      await startAdvertising(advertisingOptions);
+      
+      console.log('[SPORS-BLE-DEBUG] ✅ Advertising successfully started!');
 
-      console.log('[SPORS-BLE-DEBUG] 🔵 INFO: Advertising started successfully with service UUID:', APP_SERVICE_UUID_NATIVE, 'name:', peripheralName)
-
-    } catch (error) {
+    } catch (error: any) {
+      // This explicitly rips open the native Android error so it can't hide as {}
+      console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: Android rejected broadcast. Reason:', {
+        message: error?.message || 'No message',
+        code: error?.code || 'No code',
+        rawError: String(error)
+      });
       const message = this.getAdvertiseErrorMessage(error)
-      console.log('[SPORS-BLE-DEBUG] 🔴 ERROR: BLE peripheral advertise error', JSON.stringify(error))
       await this.setBroadcastingMode(false)
       await Promise.resolve(stopAdvertising()).catch(() => {
         // Ignore advertiser teardown errors during failed startup.
@@ -632,7 +667,26 @@ class BLEService {
       return false
     }
 
-    const storedUuid = await this.getStoredBleDeviceUuid()
+    let storedUuid = await this.getStoredBleDeviceUuid()
+    if (!storedUuid) {
+      console.log('[SPORS-BLE-DEBUG] 🟡 UUID missing from storage, fetching from Supabase...')
+      const { data: authData } = await supabase.auth.getUser()
+      if (authData?.user?.id) {
+        const { data: device } = await supabase
+          .from('devices')
+          .select('ble_device_uuid')
+          .eq('owner_id', authData.user.id)
+          .eq('status', 'lost')
+          .limit(1)
+          .maybeSingle()
+          
+        if (device?.ble_device_uuid) {
+          storedUuid = this.normalizeBleUuid(device.ble_device_uuid)
+          console.log('[SPORS-BLE-DEBUG] 🔵 Loaded UUID for broadcast:', storedUuid)
+        }
+      }
+    }
+
     if (!storedUuid) {
       return false
     }
