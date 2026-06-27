@@ -424,7 +424,7 @@ class BLEService {
       const extractedName = device.localName || device.name
       const deviceName = extractedName || 'unnamed'
       const serviceUUIDs = device.serviceUUIDs ?? []
-      
+
       console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Antenna picked up device. ID: ${device.id ?? 'unknown'}, Name: ${deviceName}, RSSI: ${device.rssi}`)
 
       // Try to extract UUID from manufacturer data or beacon name
@@ -614,11 +614,11 @@ class BLEService {
           includeDeviceName: true // Force legacy Android APIs to attach the name
         }
       };
-      
+
       console.log('[SPORS-BLE-DEBUG] 🟡 Sending payload to Android:', JSON.stringify(advertisingOptions));
 
       await startAdvertising(advertisingOptions);
-      
+
       console.log('[SPORS-BLE-DEBUG] ✅ Advertising successfully started!');
 
     } catch (error: any) {
@@ -679,7 +679,7 @@ class BLEService {
           .eq('status', 'lost')
           .limit(1)
           .maybeSingle()
-          
+
         if (device?.ble_device_uuid) {
           storedUuid = this.normalizeBleUuid(device.ble_device_uuid)
           console.log('[SPORS-BLE-DEBUG] 🔵 Loaded UUID for broadcast:', storedUuid)
