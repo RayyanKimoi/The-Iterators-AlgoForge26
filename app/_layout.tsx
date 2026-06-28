@@ -88,9 +88,10 @@ function AuthGate() {
     const inChatGroup = currentGroup === 'chat'
     const inVerifyScreen = currentGroup === 'verify'
     const inSettingsScreen = currentGroup === 'settings'
+    const inSubscriptionScreen = currentGroup === 'subscription'
 
     if (
-      (inTabsGroup || inDeviceGroup || inTrackerGroup || inChatGroup || inVerifyScreen || inSettingsScreen) &&
+      (inTabsGroup || inDeviceGroup || inTrackerGroup || inChatGroup || inVerifyScreen || inSettingsScreen || inSubscriptionScreen) &&
       !session
     ) {
       router.replace('/(auth)/onboarding')

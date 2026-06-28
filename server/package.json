@@ -1,0 +1,14 @@
+{
+  "name": "spors-payment-server",
+  "version": "1.0.0",
+  "description": "SPORS Razorpay payment server for subscription orders",
+  "main": "payment-server.js",
+  "scripts": {
+    "start": "node payment-server.js",
+    "dev": "node payment-server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "razorpay": "^2.9.4"
+  }
+}

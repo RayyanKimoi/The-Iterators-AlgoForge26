@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'
+import { Ionicons } from '@expo/vector-icons'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 
@@ -77,7 +78,7 @@ function InputField({
 
 export default function SignUpScreen() {
   const router = useRouter()
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, signInWithGoogle } = useAuth()
 
   const onBackPress = () => {
     if (router.canGoBack()) {
@@ -297,6 +298,31 @@ export default function SignUpScreen() {
             style={styles.primaryButton}
           />
 
+          <View style={styles.dividerWrap}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Pressable
+            style={styles.googleButton}
+            onPress={async () => {
+              setSubmitting(true)
+              setErrorMessage('')
+              const { error } = await signInWithGoogle()
+              setSubmitting(false)
+              if (error) {
+                setErrorMessage(error.message)
+              } else {
+                router.replace('/(tabs)')
+              }
+            }}
+            disabled={submitting}
+          >
+            <Ionicons name="logo-google" size={20} color="#000" />
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </Pressable>
+
           <Pressable style={styles.signInRow} onPress={onSignIn} disabled={submitting}>
             <Text style={styles.signInText}>Already have an account? </Text>
             {submitting ? (
@@ -428,5 +454,35 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontFamily: FontFamily.bodyMedium,
     fontSize: 15,
+  },
+  dividerWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.outlineVariant,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: Colors.onSurfaceVariant,
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 13,
+  },
+  googleButton: {
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  googleButtonText: {
+    color: '#000',
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 16,
   },
 })

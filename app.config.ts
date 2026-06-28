@@ -67,6 +67,7 @@ const config: ExpoConfig = {
   },
   android: {
     package: 'com.spors.app',
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON || './google-services.json',
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/android-icon-foreground.png',
@@ -104,6 +105,7 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-font',
+    '@react-native-google-signin/google-signin',
     '@react-native-community/datetimepicker',
     'expo-background-fetch',
     [

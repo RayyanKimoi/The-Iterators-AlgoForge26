@@ -4,6 +4,7 @@ import { Platform, StyleSheet, View } from 'react-native'
 
 import { Colors } from '../../constants/colors'
 import { FontFamily } from '../../constants/typography'
+import { useSubscription } from '../../hooks/useSubscription'
 
 type TabIconProps = {
   focused: boolean
@@ -24,6 +25,8 @@ function TabIcon({ focused, active, inactive }: TabIconProps) {
 }
 
 export default function TabsLayout() {
+  const { planId } = useSubscription()
+  
   return (
     <Tabs
       screenOptions={{
@@ -86,6 +89,16 @@ export default function TabsLayout() {
           title: 'Profile',
           tabBarIcon: ({ focused }) => (
             <TabIcon focused={focused} active="person" inactive="person-outline" />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="family"
+        options={{
+          title: 'Family',
+          href: planId === 'premium' ? '/family' : null,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} active="supervisor-account" inactive="supervisor-account" />
           ),
         }}
       />

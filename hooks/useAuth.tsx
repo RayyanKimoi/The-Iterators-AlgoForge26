@@ -1,7 +1,13 @@
 import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { AuthError, Session, User } from '@supabase/supabase-js'
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin'
 
 import { supabase } from '../lib/supabase'
+
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
+  scopes: ['profile', 'email'],
+})
 
 export type Profile = {
   id: string
@@ -33,6 +39,7 @@ type AuthContextValue = {
   resendOtp: (email: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  signInWithGoogle: () => Promise<{ error: Error | AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -114,6 +121,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signIn: async (email, password) => {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         return { error }
+      },
+      signInWithGoogle: async () => {
+        try {
+          await GoogleSignin.hasPlayServices()
+          const userInfo = await GoogleSignin.signIn()
+          if (userInfo.data?.idToken) {
+            const { error } = await supabase.auth.signInWithIdToken({
+              provider: 'google',
+              token: userInfo.data.idToken,
+            })
+            return { error }
+          }
+          return { error: new Error('No ID token present') }
+        } catch (error: any) {
+          if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+            return { error: new Error('User cancelled the login flow') }
+          } else if (error.code === statusCodes.IN_PROGRESS) {
+            return { error: new Error('Operation is in progress already') }
+          } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+            return { error: new Error('Play services not available or outdated') }
+          } else {
+            return { error: new Error(error.message || 'An error occurred during Google sign in') }
+          }
+        }
       },
       verifyOtp: async (email, token) => {
         const { error } = await supabase.auth.verifyOtp({

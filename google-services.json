@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "196188293651",
+    "project_id": "spors-9d137",
+    "storage_bucket": "spors-9d137.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:196188293651:android:2a69fa2c0b0ea91b980de6",
+        "android_client_info": {
+          "package_name": "com.spors.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "196188293651-3fdmusied1hhe9oh4ac1440qp7inrc4n.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.spors.app",
+            "certificate_hash": "3dc9a6892efbe223890826f92cdfd889b638a204"
+          }
+        },
+        {
+          "client_id": "196188293651-josp86pmue73208plj9glbo0rt12u8qv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmET7fhkZeKXuHtScdzxxkkNIXCg7kCec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "196188293651-josp86pmue73208plj9glbo0rt12u8qv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

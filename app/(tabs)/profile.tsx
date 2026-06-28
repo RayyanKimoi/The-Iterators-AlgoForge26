@@ -20,6 +20,7 @@ import { Colors } from '../../constants/colors'
 import { FontFamily } from '../../constants/typography'
 import { useAuth } from '../../hooks/useAuth'
 import { useDevices } from '../../hooks/useDevices'
+import { useSubscription } from '../../hooks/useSubscription'
 import { supabase } from '../../lib/supabase'
 
 function daysSince(dateIso?: string) {
@@ -65,6 +66,7 @@ export default function ProfileScreen() {
   const router = useRouter()
   const { profile, signOut, user, loading } = useAuth()
   const { devices } = useDevices()
+  const sub = useSubscription()
 
   const [reportsCount, setReportsCount] = useState(0)
   const [loadingReports, setLoadingReports] = useState(false)
@@ -181,6 +183,50 @@ export default function ProfileScreen() {
             <Text style={styles.statValue}>{daysSince(profile?.created_at)}</Text>
             <Text style={styles.statLabel}>Days Active</Text>
           </View>
+        </View>
+
+        <GroupLabel label="SUBSCRIPTION" />
+        <View style={styles.groupWrap}>
+          <View style={styles.settingRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingLabel}>Current Plan</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                <View
+                  style={{
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 6,
+                    backgroundColor: sub.isPaid
+                      ? 'rgba(70,241,187,0.15)'
+                      : 'rgba(170,199,255,0.15)',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: sub.isPaid ? Colors.secondary : Colors.primary,
+                      fontFamily: FontFamily.headingSemiBold,
+                      fontSize: 11,
+                    }}
+                  >
+                    {sub.currentPlan.name.toUpperCase()}
+                  </Text>
+                </View>
+                {sub.isTrialActive && (
+                  <Text
+                    style={{
+                      color: Colors.tertiary,
+                      fontFamily: FontFamily.bodyRegular,
+                      fontSize: 11,
+                    }}
+                  >
+                    Trial • {sub.trialDaysRemaining}d left
+                  </Text>
+                )}
+              </View>
+            </View>
+            <MaterialIcons name="workspace-premium" size={20} color={sub.isPaid ? Colors.secondary : Colors.outline} />
+          </View>
+          <SettingRow label="Manage Plan" onPress={() => router.push('/subscription')} />
         </View>
 
         <GroupLabel label="ACCOUNT" />
