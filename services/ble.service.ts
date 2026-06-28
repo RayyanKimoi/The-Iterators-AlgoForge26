@@ -139,6 +139,7 @@ class BLEService {
   private broadcastingMode: boolean | null = null
   private lastBroadcastFlagVerifiedAt = 0
   private static readonly BROADCAST_FLAG_VERIFY_TTL_MS = 5 * 60 * 1000 // 5 minutes
+  private currentDeviceUuid: string | null = null
 
   constructor() {
     try {
@@ -361,14 +362,20 @@ class BLEService {
     }
 
     await AsyncStorage.setItem(BLE_DEVICE_UUID_STORAGE_KEY, normalized)
+    this.currentDeviceUuid = normalized
   }
 
   private async getStoredBleDeviceUuid() {
     const value = await AsyncStorage.getItem(BLE_DEVICE_UUID_STORAGE_KEY)
-    return this.normalizeBleUuid(value)
+    const normalized = this.normalizeBleUuid(value)
+    this.currentDeviceUuid = normalized
+    return normalized
   }
 
   async scanForSPORSDevices(onDeviceFound: FoundCallback, options?: { skipPermissionPrompt?: boolean }) {
+    // Ensure we know our own ID so we don't process our own broadcast
+    await this.getStoredBleDeviceUuid()
+
     // Bug 4 fix: verify broadcasting flag against actual device status
     await this.verifyBroadcastingFlag()
 
@@ -425,8 +432,6 @@ class BLEService {
       const deviceName = extractedName || 'unnamed'
       const serviceUUIDs = device.serviceUUIDs ?? []
 
-      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Antenna picked up device. ID: ${device.id ?? 'unknown'}, Name: ${deviceName}, RSSI: ${device.rssi}`)
-
       // Try to extract UUID from manufacturer data or beacon name
       let bleDeviceUuid = this.readBleUuidFromAdvertisement(device)
 
@@ -462,15 +467,24 @@ class BLEService {
         }
       }
 
-      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: ✅ Matched SPORS device! UUID/ShortID: ${bleDeviceUuid}`)
+      // Prevent the device from detecting its own broadcast
+      if (this.currentDeviceUuid) {
+        if (bleDeviceUuid === this.currentDeviceUuid || bleDeviceUuid === this.currentDeviceUuid.substring(0, 5)) {
+          return // Silently discard to avoid log spam, it's normal to hear ourselves
+        }
+      }
 
       // Bug 7 fix: Check cooldown but don't set it until after the callback succeeds.
-      // Use 10s cooldown for better catch rate across scan cycles
+      // Use 10s cooldown for better catch rate across scan cycles.
+      // This is placed here to silence log spam from the same device.
       const now = Date.now()
       const cooldown = this.recentlySeen.get(bleDeviceUuid)
       if (cooldown && now - cooldown < 10000) {
         return
       }
+
+      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: Antenna picked up device. ID: ${device.id ?? 'unknown'}, Name: ${deviceName}, RSSI: ${device.rssi}`)
+      console.log(`[SPORS-BLE-DEBUG] 🔵 INFO: ✅ Matched SPORS device! UUID/ShortID: ${bleDeviceUuid}`)
 
       onDeviceFound(bleDeviceUuid, rssi)
       // Set cooldown AFTER the callback, not before
@@ -540,8 +554,9 @@ class BLEService {
   }
 
   stopScan() {
-    this.recentlySeen.clear()
-
+    // NOTE: Do NOT clear recentlySeen here. The cooldown map must persist across
+    // scan stop/restart cycles (throttle gaps) to prevent Supabase from being
+    // queried again for the same device immediately after a scan restarts.
     if (this.manager) {
       this.manager.stopDeviceScan()
     }
@@ -606,12 +621,12 @@ class BLEService {
       const advertisingOptions = {
         serviceUUIDs: ['5a0f5000-0000-0000-0000-000000000000'],
         localName: shortId || "SPORS",
-        includeDeviceName: true, // Force modern Android APIs to attach the name
+        includeDeviceName: false,
         adOptions: {
           advertiseMode: 2, // Low Latency / High Frequency
           txPowerLevel: 3,  // High Power
           connectable: false,
-          includeDeviceName: true // Force legacy Android APIs to attach the name
+          includeDeviceName: false,
         }
       };
 
@@ -653,6 +668,8 @@ class BLEService {
       // Ignore foreground service stop failures to keep shutdown idempotent.
     })
 
+    // Clear in-memory state so nothing accidentally restarts the advertiser
+    this.currentDeviceUuid = null
     await this.setBroadcastingMode(false)
   }
 

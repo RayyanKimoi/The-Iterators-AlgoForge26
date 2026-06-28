@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import { supabase } from '../lib/supabase'
 import { useAuth } from './useAuth'
@@ -233,6 +234,11 @@ export async function registerDevice(input: RegisterDeviceInput): Promise<Device
 
   if (error || !data) {
     throw new Error(error?.message ?? 'Unable to register device.')
+  }
+
+  // Update local cache to ensure immediate broadcast capability without an app restart
+  if (data.ble_device_uuid) {
+    await AsyncStorage.setItem('spors_ble_device_uuid', data.ble_device_uuid)
   }
 
   return data as DeviceRecord

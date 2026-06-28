@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native'
 
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps'
 
 const GOOGLE_MAPS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''
@@ -256,6 +257,14 @@ export default function DeviceDetailScreen() {
               Alert.alert('Error', deleteError.message)
               return
             }
+            
+            // Clear the BLE device UUID cache to prevent ghost IDs
+            await AsyncStorage.removeItem('spors_ble_device_uuid')
+            
+            // Force hardware antennas to shut down to prevent zombie broadcasts
+            await bleService.stopBroadcasting()
+            bleService.stopScan()
+            
             router.replace('/(tabs)/devices')
           } catch (err) {
             Alert.alert('Error', err instanceof Error ? err.message : 'Failed to delete device.')
