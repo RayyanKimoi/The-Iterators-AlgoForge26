@@ -1,0 +1,64 @@
+{
+  "name": "spors",
+  "productName": "SPORS",
+  "desktopName": "SPORS",
+  "version": "1.0.0",
+  "description": "SPORS desktop application",
+  "homepage": "https://spors.app",
+  "main": "main.js",
+  "scripts": {
+    "start": "npm run build:web && electron . --no-sandbox --ozone-platform=x11",
+    "build:web": "npm --prefix ../web install && npm --prefix ../web run build",
+    "build:linux": "npm run build:web && electron-builder --linux",
+    "build:windows": "npm run build:web && electron-builder --win",
+    "build:win": "npm run build:windows",
+    "build:all": "npm run build:web && electron-builder --linux --win"
+  },
+  "keywords": [],
+  "author": {
+    "name": "SPORS PVT LTD",
+    "email": "support@spors.app"
+  },
+  "publisherName": "SPORS PVT LTD",
+  "license": "ISC",
+  "type": "commonjs",
+  "build": {
+    "appId": "com.mycomplexapp.desktop",
+    "executableName": "SPORS",
+    "icon": "build/icon.png",
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web-dist",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "../icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "linux": {
+      "category": "Utility",
+      "maintainer": "SPORS <support@spors.app>",
+      "syncDesktopName": true,
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "nsis"
+      ]
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3"
+  }
+}
