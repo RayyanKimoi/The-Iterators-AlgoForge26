@@ -15,6 +15,7 @@ export function Navbar() {
   const navigate = useNavigate()
   const { scrollY } = useScroll()
   const [scrolled, setScrolled] = useState(false)
+  const isElectron = !!(window as any).electronAPI
   const [menuOpen, setMenuOpen] = useState(false)
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
@@ -53,7 +54,7 @@ export function Navbar() {
         transition={{ duration: 0.8, ease: [0.77, 0, 0.175, 1] }}
         style={{
           position: 'fixed',
-          top: 0,
+          top: isElectron ? '36px' : 0,
           left: 0,
           right: 0,
           zIndex: 50,

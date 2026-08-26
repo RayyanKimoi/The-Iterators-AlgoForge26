@@ -55,6 +55,8 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "babel-preset-expo": "^55.0.12",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
     "patch-package": "^8.0.1",
     "supabase": "^2.84.4",
     "typescript": "~5.9.2"

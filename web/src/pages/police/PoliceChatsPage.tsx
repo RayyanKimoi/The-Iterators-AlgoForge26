@@ -116,7 +116,7 @@ export function PoliceChatsPage() {
 
   const containerStyle: CSSProperties = {
     display: 'flex',
-    height: 'calc(100vh - 48px)',
+    height: 'calc(100% - 48px)',
     maxWidth: '1600px',
     margin: '0 auto',
     gap: '24px',

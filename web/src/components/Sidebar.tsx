@@ -23,7 +23,7 @@ export function Sidebar() {
 
   const sidebarStyle: CSSProperties = {
     width: '240px',
-    height: '100vh',
+    height: '100%',
     position: 'sticky',
     top: 0,
     backgroundColor: theme.bgSurface,
@@ -289,7 +289,7 @@ export function Sidebar() {
           onClick={async (e) => {
             e.preventDefault()
             await signOut()
-            window.location.href = '/login'
+            navigate('/login')
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = theme.errorBg

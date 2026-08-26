@@ -160,7 +160,7 @@ export function ChatRoomPage() {
   }
 
   const containerStyle: CSSProperties = {
-    display: 'flex', flexDirection: 'column', height: 'calc(100vh - 48px)', maxWidth: '900px', margin: '0 auto',
+    display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)', maxWidth: '900px', margin: '0 auto',
   }
 
   const messageBubbleStyle = (isOwn: boolean, isSystem: boolean): CSSProperties => ({

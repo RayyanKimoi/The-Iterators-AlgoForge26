@@ -26,18 +26,52 @@
 }
 
 /* ═══════════════════════════════════════════════
-   GLOBAL RESET & SCROLLBAR HIDING
+   MODERN SCROLLBAR STYLING
    ═══════════════════════════════════════════════ */
 html, body {
   overflow-x: hidden;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  overflow-y: hidden;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none;
+/* Chrome, Safari, Edge, Opera, Electron (WebKit/Blink) */
+::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track-piece {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(160, 160, 160, 0.4) !important;
+  border-radius: 10px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(160, 160, 160, 0.7) !important;
+}
+
+.dark ::-webkit-scrollbar-thumb,
+.app-layout.dark ::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+.app-layout.dark ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.5) !important;
 }
 
 

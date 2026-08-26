@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ThemeProvider, useTheme } from './hooks/ThemeContext'
 import { globalStyles } from './styles/global'
+import { TitleBar } from './components/TitleBar'
 import { Sidebar } from './components/Sidebar'
 import { PoliceSidebar } from './components/police/PoliceSidebar'
 import { CustomCursor } from './components/landing/CustomCursor'
@@ -75,16 +76,19 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 function AppLayout({ children, isPolice }: { children: React.ReactNode; isPolice?: boolean }) {
   const { theme, isDark } = useTheme()
 
+  const isElectron = !!(window as any).electronAPI
+
   const layoutStyle: CSSProperties = {
     display: 'flex',
-    height: '100vh',
+    height: isElectron ? 'calc(100vh - 36px)' : '100vh',
     overflow: 'hidden',
+    marginTop: isElectron ? '36px' : '0',
   }
 
   const mainStyle: CSSProperties = {
     flex: 1,
     overflowY: 'auto',
-    height: '100vh',
+    height: '100%',
     backgroundColor: theme.bg,
     transition: 'background-color 0.3s ease',
   }
@@ -138,13 +142,27 @@ function AppRoutes() {
     )
   }
 
+  const isElectron = !!(window as any).electronAPI
+  
+  // Wrap standalone pages to avoid overlapping with the title bar
+  const PageWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div style={{ 
+      height: isElectron ? 'calc(100vh - 36px)' : '100vh', 
+      marginTop: isElectron ? '36px' : '0',
+      overflow: 'auto',
+      backgroundColor: theme.bg 
+    }}>
+      {children}
+    </div>
+  )
+
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
       
       <Route
         path="/login"
-        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        element={user ? <Navigate to="/dashboard" replace /> : <PageWrapper><LoginPage /></PageWrapper>}
       />
       <Route path="/dashboard" element={<PrivateRoute><AppLayout><HomePage /></AppLayout></PrivateRoute>} />
       <Route path="/devices" element={<PrivateRoute><AppLayout><DevicesPage /></AppLayout></PrivateRoute>} />
@@ -183,6 +201,7 @@ export default function App() {
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <ThemeProvider>
+            <TitleBar />
             <AppRoutes />
           </ThemeProvider>
         </AuthProvider>

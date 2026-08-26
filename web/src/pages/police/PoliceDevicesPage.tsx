@@ -2,6 +2,7 @@ import { CSSProperties, useEffect, useState } from 'react'
 import { useTheme } from '../../hooks/ThemeContext'
 import { supabase } from '../../lib/supabase'
 import { Card } from '../../components/Card'
+import { LocationMap } from '../../components/LocationMap'
 
 type Device = {
   id: string
@@ -88,10 +89,6 @@ export function PoliceDevicesPage() {
       device.lost_reports[0]?.police_complaint_number?.toLowerCase().includes(search)
     )
   })
-
-  const openInMaps = (lat: number, lng: number) => {
-    window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank')
-  }
 
   const containerStyle: CSSProperties = {
     paddingTop: '32px',
@@ -338,7 +335,7 @@ export function PoliceDevicesPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          openInMaps(device.last_seen_lat!, device.last_seen_lng!)
+                          setSelectedDevice(device)
                         }}
                         style={{
                           flex: 1,
@@ -357,7 +354,7 @@ export function PoliceDevicesPage() {
                         }}
                       >
                         <span className="material-icons" style={{ fontSize: '18px' }}>location_on</span>
-                        View Location
+                        View on Map
                       </button>
                     )}
                     {device.profiles?.phone_number && (
@@ -521,35 +518,53 @@ export function PoliceDevicesPage() {
                   <>
                     <div style={{ height: '1px', backgroundColor: theme.border }} />
                     <div>
-                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '8px', textTransform: 'uppercase', fontWeight: 600 }}>
-                        Location Tracking
+                      <div style={{ fontSize: '12px', color: theme.textTertiary, marginBottom: '10px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.08em' }}>
+                        Last Known Location
                       </div>
-                      <button
-                        onClick={() => openInMaps(selectedDevice.last_seen_lat!, selectedDevice.last_seen_lng!)}
-                        style={{
-                          width: '100%',
-                          padding: '14px',
-                          backgroundColor: theme.text,
-                          color: theme.textInverse,
-                          border: 'none',
-                          borderRadius: '0px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                        }}
-                      >
-                        <span className="material-icons" style={{ fontSize: '20px' }}>map</span>
-                        Open in Google Maps
-                      </button>
+                      <LocationMap
+                        lat={selectedDevice.last_seen_lat!}
+                        lng={selectedDevice.last_seen_lng!}
+                        label={`${selectedDevice.make} ${selectedDevice.model}`}
+                        height={240}
+                        borderRadius={14}
+                        zoom={16}
+                      />
                       {selectedDevice.last_seen_at && (
-                        <div style={{ fontSize: '12px', color: theme.textTertiary, marginTop: '8px', textAlign: 'center' }}>
+                        <div style={{
+                          fontSize: '11px',
+                          color: theme.textTertiary,
+                          marginTop: '8px',
+                          textAlign: 'center',
+                          fontFamily: "'JetBrains Mono', monospace",
+                          letterSpacing: '0.05em',
+                        }}>
                           Last seen: {new Date(selectedDevice.last_seen_at).toLocaleString()}
                         </div>
                       )}
+                      <a
+                        href={`https://www.google.com/maps?q=${selectedDevice.last_seen_lat},${selectedDevice.last_seen_lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          marginTop: '10px',
+                          padding: '8px',
+                          fontSize: '12px',
+                          color: theme.textSecondary,
+                          textDecoration: 'none',
+                          border: `1px solid ${theme.border}`,
+                          borderRadius: '8px',
+                          transition: 'all 0.2s',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.borderColor = theme.text)}
+                        onMouseLeave={e => (e.currentTarget.style.borderColor = theme.border)}
+                      >
+                        <span className="material-icons" style={{ fontSize: '14px' }}>open_in_new</span>
+                        Open in Google Maps
+                      </a>
                     </div>
                   </>
                 )}

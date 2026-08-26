@@ -98,7 +98,7 @@ export function ProfilePage() {
 
   const handleSignOut = async () => {
     await signOut()
-    window.location.href = '/login'
+    navigate('/login')
   }
 
   const containerStyle: CSSProperties = {
